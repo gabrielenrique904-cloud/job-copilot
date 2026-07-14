@@ -52,10 +52,8 @@ if __name__ == "__main__":
     with open("mi_cv.txt", "r", encoding="utf-8") as archivo:
         cv_real = archivo.read()
 
-    oferta_ejemplo = """
-    Buscamos Customer Success Manager con experiencia en HubSpot,
-    inglés fluido, y conocimientos de Google Analytics. Se valora SQL.
-    """
+    with open("oferta.txt", "r", encoding="utf-8") as archivo:
+        oferta_real = archivo.read()
 
-    resultado = analizar_match(cv_real, oferta_ejemplo)
+    resultado = analizar_match(cv_real, oferta_real)
     print(json.dumps(resultado, indent=2, ensure_ascii=False))
