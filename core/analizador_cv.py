@@ -10,6 +10,14 @@ def analizar_match(cv_texto: str, oferta_texto: str) -> dict:
     diccionario de error en vez de romper el programa.
     """
 
+    LIMITE_CARACTERES = 6000
+
+    if len(cv_texto) > LIMITE_CARACTERES or len(oferta_texto) > LIMITE_CARACTERES:
+        return {
+            "error": f"El texto es demasiado largo (máximo {LIMITE_CARACTERES} caracteres). "
+                     f"Por favor, revisa que no hayas pegado contenido de más."
+        }
+
     prompt = f"""
 Eres un experto en reclutamiento. Compara el siguiente CV con la oferta de trabajo.
 

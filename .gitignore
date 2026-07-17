@@ -16,3 +16,7 @@ mi_cv.txt
 
 # Datos personales
 oferta.txt
+
+
+# CVs generados (contienen datos personales)
+cv_*.pdf
