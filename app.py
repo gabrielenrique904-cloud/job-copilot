@@ -2,6 +2,27 @@ import streamlit as st
 from core.buscador_ofertas import buscar_y_analizar_ofertas
 from core.analizador_cv import analizar_match
 from core.generador_cv import generar_cv_adaptado, crear_pdf_desde_texto
+import time
+
+TIEMPO_MINIMO_ENTRE_ACCIONES = 15  # segundos
+
+
+def puede_ejecutar_accion() -> bool:
+    """
+    Evita que el usuario dispare muchas llamadas seguidas a las APIs externas
+    (Gemini, Adzuna), protegiendo la cuota gratuita compartida de la app.
+    Devuelve True si ya pasó suficiente tiempo desde la última acción.
+    """
+    ahora = time.time()
+    ultima_accion = st.session_state.get("ultima_accion", 0)
+
+    if ahora - ultima_accion < TIEMPO_MINIMO_ENTRE_ACCIONES:
+        segundos_restantes = round(TIEMPO_MINIMO_ENTRE_ACCIONES - (ahora - ultima_accion))
+        st.warning(f"Espera {segundos_restantes} segundos antes de volver a intentarlo.")
+        return False
+
+    st.session_state["ultima_accion"] = ahora
+    return True
 
 
 st.set_page_config(page_title="AI Job Copilot", page_icon="🎯")
@@ -20,13 +41,22 @@ with col2:
 if "resultado_analisis" not in st.session_state:
     st.session_state.resultado_analisis = None
 
-if st.button("Analizar"):
+if "procesando_analisis" not in st.session_state:
+    st.session_state.procesando_analisis = False
+
+if st.button("Analizar", disabled=st.session_state.procesando_analisis):
     if not cv_texto.strip() or not oferta_texto.strip():
         st.warning("Por favor, pega tanto el CV como la oferta antes de analizar.")
-    else:
-        with st.spinner("Analizando con IA..."):
-            resultado = analizar_match(cv_texto, oferta_texto)
-        st.session_state.resultado_analisis = resultado
+    elif puede_ejecutar_accion():
+        st.session_state.procesando_analisis = True
+        st.rerun()
+
+if st.session_state.procesando_analisis:
+    with st.spinner("Analizando con IA..."):
+        resultado = analizar_match(cv_texto, oferta_texto)
+    st.session_state.resultado_analisis = resultado
+    st.session_state.procesando_analisis = False
+    st.rerun()
 
 if st.session_state.resultado_analisis:
     resultado = st.session_state.resultado_analisis
@@ -46,12 +76,26 @@ if st.session_state.resultado_analisis:
 
         st.divider()
 
-        if st.button("📄 Generar CV adaptado a esta oferta (PDF)"):
+        if "procesando_cv_manual" not in st.session_state:
+            st.session_state.procesando_cv_manual = False
+        if "ruta_pdf_manual" not in st.session_state:
+            st.session_state.ruta_pdf_manual = None
+
+        if st.button("📄 Generar CV adaptado a esta oferta (PDF)", disabled=st.session_state.procesando_cv_manual):
+            if puede_ejecutar_accion():
+                st.session_state.procesando_cv_manual = True
+                st.rerun()
+
+        if st.session_state.procesando_cv_manual:
             with st.spinner("Generando tu CV adaptado..."):
                 cv_adaptado_texto = generar_cv_adaptado(cv_texto, oferta_texto)
                 ruta_pdf = crear_pdf_desde_texto(cv_adaptado_texto)
+            st.session_state.ruta_pdf_manual = ruta_pdf
+            st.session_state.procesando_cv_manual = False
+            st.rerun()
 
-            with open(ruta_pdf, "rb") as archivo_pdf:
+        if st.session_state.ruta_pdf_manual:
+            with open(st.session_state.ruta_pdf_manual, "rb") as archivo_pdf:
                 st.download_button(
                     label="⬇️ Descargar CV en PDF",
                     data=archivo_pdf,
@@ -84,16 +128,25 @@ ubicacion_busqueda = st.selectbox("Ubicación", provincias_espana, index=0, key=
 if "ofertas_encontradas" not in st.session_state:
     st.session_state.ofertas_encontradas = None
 
-if st.button("Buscar ofertas idóneas"):
+if "procesando_busqueda" not in st.session_state:
+    st.session_state.procesando_busqueda = False
+
+if st.button("Buscar ofertas idóneas", disabled=st.session_state.procesando_busqueda):
     if not cv_busqueda.strip():
         st.warning("Por favor, pega tu CV antes de buscar.")
-    else:
-        ubicacion_para_busqueda = None if ubicacion_busqueda == "Toda España" else ubicacion_busqueda
+    elif puede_ejecutar_accion():
+        st.session_state.procesando_busqueda = True
+        st.rerun()
 
-        with st.spinner("Buscando y analizando ofertas reales... esto puede tardar unos segundos"):
-            resultados = buscar_y_analizar_ofertas(cv_busqueda, palabras_clave, ubicacion=ubicacion_para_busqueda)
+if st.session_state.procesando_busqueda:
+    ubicacion_para_busqueda = None if ubicacion_busqueda == "Toda España" else ubicacion_busqueda
 
-        st.session_state.ofertas_encontradas = resultados
+    with st.spinner("Buscando y analizando ofertas reales... esto puede tardar unos segundos"):
+        resultados = buscar_y_analizar_ofertas(cv_busqueda, palabras_clave, ubicacion=ubicacion_para_busqueda)
+
+    st.session_state.ofertas_encontradas = resultados
+    st.session_state.procesando_busqueda = False
+    st.rerun()
 
 if st.session_state.ofertas_encontradas is not None:
     ofertas = st.session_state.ofertas_encontradas
