@@ -12,18 +12,24 @@ if not api_key:
         "No se encontró GEMINI_API_KEY. Revisa que tu archivo .env exista y tenga la clave."
     )
 
-client = genai.Client(api_key=api_key)
+# Ya no creamos el cliente aquí arriba. Lo creamos "perezosamente"
+# (solo la primera vez que se necesite), para no bloquear el arranque de la app.
+_client = None
+
+
+def _obtener_cliente():
+    global _client
+    if _client is None:
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 
 def preguntar_a_gemini(mensaje: str, intentos: int = 3) -> str:
-    """
-    Envía un mensaje a Gemini y devuelve su respuesta como texto.
-    Reintenta automáticamente si el servicio está saturado (error 503),
-    esperando un poco más entre cada intento.
-    """
+    cliente = _obtener_cliente()
+
     for intento_actual in range(1, intentos + 1):
         try:
-            respuesta = client.models.generate_content(
+            respuesta = cliente.models.generate_content(
                 model="gemini-flash-lite-latest",
                 contents=mensaje
             )
@@ -33,7 +39,7 @@ def preguntar_a_gemini(mensaje: str, intentos: int = 3) -> str:
             if es_ultimo_intento:
                 return f"Error al conectar con Gemini tras {intentos} intentos: {error}"
 
-            espera = intento_actual * 2  # 2s, 4s, 6s...
+            espera = intento_actual * 2
             print(f"Intento {intento_actual} fallo ({error}). Reintentando en {espera}s...")
             time.sleep(espera)
 
