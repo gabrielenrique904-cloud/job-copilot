@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AuthForm from "./components/AuthForm";
 import AnalizadorManual from "./components/AnalizadorManual";
+import BuscadorOfertas from "./components/BuscadorOfertas";
 
 function App() {
   const [usuarioId, setUsuarioId] = useState(null);
@@ -17,6 +18,7 @@ function App() {
         </h1>
 
         <AnalizadorManual />
+        <BuscadorOfertas />
       </div>
     </div>
   );
