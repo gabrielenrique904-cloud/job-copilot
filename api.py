@@ -5,6 +5,8 @@ from core.generador_cv import generar_cv_adaptado, crear_pdf_desde_texto
 from core.buscador_ofertas import buscar_y_analizar_ofertas
 from database.autenticacion import registrar_usuario, verificar_login
 from fastapi.responses import FileResponse
+from fastapi import UploadFile, File
+from core.lector_cv import extraer_texto_cv
 
 app = FastAPI(title="AI Job Copilot API")
 
@@ -27,6 +29,7 @@ class AnalisisRequest(BaseModel):
 class GenerarCVRequest(BaseModel):
     cv_texto: str
     oferta_texto: str
+    palabras_clave_ats: list[str] | None = None
 
 
 class BusquedaRequest(BaseModel):
@@ -57,7 +60,7 @@ def analizar(datos: AnalisisRequest):
 
 @app.post("/generar-cv")
 def generar_cv(datos: GenerarCVRequest):
-    cv_adaptado_texto = generar_cv_adaptado(datos.cv_texto, datos.oferta_texto)
+    cv_adaptado_texto = generar_cv_adaptado(datos.cv_texto, datos.oferta_texto, datos.palabras_clave_ats)
     ruta_pdf = crear_pdf_desde_texto(cv_adaptado_texto)
     return FileResponse(ruta_pdf, media_type="application/pdf", filename="cv_adaptado.pdf")
 
@@ -76,3 +79,15 @@ def registro(datos: RegistroRequest):
 @app.post("/login")
 def login(datos: LoginRequest):
     return verificar_login(datos.email, datos.password)
+
+@app.post("/extraer-cv")
+async def extraer_cv(archivo: UploadFile = File(...)):
+    import io
+
+    contenido = await archivo.read()
+    buffer = io.BytesIO(contenido)
+    buffer.name = archivo.filename
+
+    texto = extraer_texto_cv(buffer)
+
+    return {"texto": texto}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { analizarMatch, generarCV } from "../services/api";
+import { analizarMatch, generarCV, extraerTextoCV } from "../services/api";
 
 function AnalizadorManual() {
   const [cvTexto, setCvTexto] = useState("");
@@ -8,6 +8,28 @@ function AnalizadorManual() {
   const [resultado, setResultado] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+
+  async function manejarSubirArchivo(evento) {
+    const archivo = evento.target.files[0];
+    if (!archivo) return;
+
+    setSubiendoArchivo(true);
+    setAviso("");
+
+    try {
+      const datos = await extraerTextoCV(archivo);
+      if (datos.texto) {
+        setCvTexto(datos.texto);
+      } else {
+        setAviso("No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.");
+      }
+    } catch (error) {
+      setAviso("No pudimos leer el archivo. Inténtalo de nuevo.");
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  }
 
   async function manejarAnalizar() {
     setAviso("");
@@ -33,7 +55,7 @@ function AnalizadorManual() {
   async function manejarGenerarCV() {
     setGenerandoCV(true);
     try {
-      const blob = await generarCV(cvTexto, ofertaTexto);
+      const blob = await generarCV(cvTexto, ofertaTexto, resultado.palabras_clave_ats);
       const url = window.URL.createObjectURL(blob);
       const enlace = document.createElement("a");
       enlace.href = url;
@@ -55,6 +77,20 @@ function AnalizadorManual() {
       <p className="text-gray-600 mb-4">
         Pega tu CV y una oferta de trabajo para ver el análisis de compatibilidad.
       </p>
+
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          O sube tu CV (PDF o Word)
+        </label>
+        <input
+          type="file"
+          accept=".pdf,.docx"
+          onChange={manejarSubirArchivo}
+          disabled={subiendoArchivo}
+          className="text-sm text-gray-600"
+        />
+        {subiendoArchivo && <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <textarea
@@ -106,6 +142,28 @@ function AnalizadorManual() {
                   <li key={i} className="text-gray-700">⚠️ {punto}</li>
                 ))}
               </ul>
+
+              <h3 className="font-semibold text-gray-800 mt-4 mb-2">
+                Compatibilidad ATS: {resultado.palabras_clave_cumplidas.length} de{" "}
+                {resultado.palabras_clave_ats.length} palabras clave
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {resultado.palabras_clave_ats.map((palabra, i) => {
+                  const cumplida = resultado.palabras_clave_cumplidas.includes(palabra);
+                  return (
+                    <span
+                      key={i}
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        cumplida
+                          ? "bg-green-100 text-green-800"
+                          : "bg-gray-100 text-gray-500 line-through"
+                      }`}
+                    >
+                      {palabra}
+                    </span>
+                  );
+                })}
+              </div>
 
               <button
                 onClick={manejarGenerarCV}

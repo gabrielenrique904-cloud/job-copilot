@@ -1,17 +1,158 @@
 import { useState } from "react";
-import { buscarOfertas } from "../services/api";
+import { buscarOfertas, generarCV, extraerTextoCV } from "../services/api";
 
 const PROVINCIAS_ESPANA = [
-  "Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza", "Málaga",
-  "Murcia", "Palma de Mallorca", "Las Palmas", "Bilbao", "Alicante",
-  "Córdoba", "Valladolid", "Vigo", "Gijón", "A Coruña", "Granada",
-  "Elche", "Oviedo", "Badalona", "Cartagena", "Terrassa", "Jerez de la Frontera",
-  "Sabadell", "Móstoles", "Alcalá de Henares", "Pamplona", "Fuenlabrada",
-  "Almería", "Leganés", "San Sebastián", "Santander", "Burgos", "Castellón de la Plana",
-  "Albacete", "Getafe", "Alcorcón", "Logroño", "Badajoz", "Salamanca",
-  "Huelva", "Marbella", "Lleida", "Tarragona", "León", "Cádiz",
-  "Jaén", "Ourense", "Girona", "Toda España",
+  "Madrid",
+  "Barcelona",
+  "Valencia",
+  "Sevilla",
+  "Zaragoza",
+  "Málaga",
+  "Murcia",
+  "Palma de Mallorca",
+  "Las Palmas",
+  "Bilbao",
+  "Alicante",
+  "Córdoba",
+  "Valladolid",
+  "Vigo",
+  "Gijón",
+  "A Coruña",
+  "Granada",
+  "Elche",
+  "Oviedo",
+  "Badalona",
+  "Cartagena",
+  "Terrassa",
+  "Jerez de la Frontera",
+  "Sabadell",
+  "Móstoles",
+  "Alcalá de Henares",
+  "Pamplona",
+  "Fuenlabrada",
+  "Almería",
+  "Leganés",
+  "San Sebastián",
+  "Santander",
+  "Burgos",
+  "Castellón de la Plana",
+  "Albacete",
+  "Getafe",
+  "Alcorcón",
+  "Logroño",
+  "Badajoz",
+  "Salamanca",
+  "Huelva",
+  "Marbella",
+  "Lleida",
+  "Tarragona",
+  "León",
+  "Cádiz",
+  "Jaén",
+  "Ourense",
+  "Girona",
+  "Toda España",
 ];
+
+function TarjetaOferta({ oferta, cvTexto }) {
+  const [generandoCV, setGenerandoCV] = useState(false);
+  const [aviso, setAviso] = useState("");
+  const [mostrarDetalle, setMostrarDetalle] = useState(false);
+
+  async function manejarGenerarCV() {
+    setGenerandoCV(true);
+    setAviso("");
+    try {
+      const blob = await generarCV(cvTexto, oferta.descripcion, oferta.palabras_clave_ats);
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = `cv_adaptado_${oferta.empresa}.pdf`;
+      enlace.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setAviso("No pudimos generar el CV. Inténtalo de nuevo.");
+    } finally {
+      setGenerandoCV(false);
+    }
+  }
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 mb-4">
+      <h3 className="text-lg font-bold text-gray-800">
+        {oferta.match}% match — {oferta.titulo}
+      </h3>
+      <p className="text-gray-600 mb-2">
+        <span className="font-medium">{oferta.empresa}</span> |{" "}
+        {oferta.ubicacion}
+      </p>
+
+      <button
+        onClick={() => setMostrarDetalle(!mostrarDetalle)}
+        className="text-blue-600 text-sm hover:underline mb-2"
+      >
+        {mostrarDetalle ? "Ocultar detalle" : "Ver fortalezas y carencias"}
+      </button>
+
+      {mostrarDetalle && (
+        <div className="mb-3 text-sm">
+          <p className="font-medium text-gray-700 mt-2">Fortalezas:</p>
+          <ul className="space-y-1">
+            {oferta.fortalezas.map((punto, i) => (
+              <li key={i} className="text-gray-700">
+                ✅ {punto}
+              </li>
+            ))}
+          </ul>
+          <p className="font-medium text-gray-700 mt-2">Carencias:</p>
+          <ul className="space-y-1">
+            {oferta.carencias.map((punto, i) => (
+              <li key={i} className="text-gray-700">
+                ⚠️ {punto}
+              </li>
+            ))}
+          </ul>
+          <p className="font-medium text-gray-700 mt-2">
+            Compatibilidad ATS: {oferta.palabras_clave_cumplidas.length} de{" "}
+            {oferta.palabras_clave_ats.length} palabras clave
+          </p>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {oferta.palabras_clave_ats.map((palabra, i) => {
+              const cumplida = oferta.palabras_clave_cumplidas.includes(palabra);
+              return (
+                <span
+                  key={i}
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    cumplida
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-500 line-through"
+                  }`}
+                >
+                  {palabra}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {aviso && <p className="text-red-600 text-sm mb-2">{aviso}</p>}
+
+      <div className="flex gap-3">
+        <a href={oferta.url} target="_blank" rel="noopener noreferrer" className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50" >
+          Ver oferta original
+        </a>
+        <button
+          onClick={manejarGenerarCV}
+          disabled={generandoCV}
+          className="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+        >
+          {generandoCV ? "Generando..." : "📄 Generar CV adaptado"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function BuscadorOfertas() {
   const [cvTexto, setCvTexto] = useState("");
@@ -20,6 +161,28 @@ function BuscadorOfertas() {
   const [ofertas, setOfertas] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [aviso, setAviso] = useState("");
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+
+  async function manejarSubirArchivo(evento) {
+    const archivo = evento.target.files[0];
+    if (!archivo) return;
+
+    setSubiendoArchivo(true);
+    setAviso("");
+
+    try {
+      const datos = await extraerTextoCV(archivo);
+      if (datos.texto) {
+        setCvTexto(datos.texto);
+      } else {
+        setAviso("No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.");
+      }
+    } catch (error) {
+      setAviso("No pudimos leer el archivo. Inténtalo de nuevo.");
+    } finally {
+      setSubiendoArchivo(false);
+    }
+  }
 
   async function manejarBuscar() {
     setAviso("");
@@ -32,13 +195,20 @@ function BuscadorOfertas() {
     setCargando(true);
     setOfertas(null);
 
-    const ubicacionParaBusqueda = ubicacion === "Toda España" ? null : ubicacion;
+    const ubicacionParaBusqueda =
+      ubicacion === "Toda España" ? null : ubicacion;
 
     try {
-      const datos = await buscarOfertas(cvTexto, palabrasClave, ubicacionParaBusqueda);
+      const datos = await buscarOfertas(
+        cvTexto,
+        palabrasClave,
+        ubicacionParaBusqueda,
+      );
       setOfertas(datos.ofertas);
     } catch (error) {
-      setAviso("No pudimos buscar ofertas en este momento. Inténtalo de nuevo.");
+      setAviso(
+        "No pudimos buscar ofertas en este momento. Inténtalo de nuevo.",
+      );
     } finally {
       setCargando(false);
     }
@@ -53,6 +223,20 @@ function BuscadorOfertas() {
         Pega tu CV y te buscamos ofertas reales publicadas en las últimas 24h,
         ordenadas por compatibilidad.
       </p>
+
+      <div className="mb-3">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          O sube tu CV (PDF o Word)
+        </label>
+        <input
+          type="file"
+          accept=".pdf,.docx"
+          onChange={manejarSubirArchivo}
+          disabled={subiendoArchivo}
+          className="text-sm text-gray-600"
+        />
+        {subiendoArchivo && <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>}
+      </div>
 
       <textarea
         value={cvTexto}
@@ -102,10 +286,15 @@ function BuscadorOfertas() {
               Prueba otras palabras clave.
             </p>
           ) : (
-            <p className="text-green-700 font-medium">
-              Se encontraron {ofertas.length} ofertas, ordenadas de mayor a menor
-              compatibilidad. (Tarjetas de resultado: siguiente paso)
-            </p>
+            <>
+              <p className="text-green-700 font-medium mb-4">
+                Se encontraron {ofertas.length} ofertas, ordenadas de mayor a
+                menor compatibilidad:
+              </p>
+              {ofertas.map((oferta, i) => (
+                <TarjetaOferta key={i} oferta={oferta} cvTexto={cvTexto} />
+              ))}
+            </>
           )}
         </div>
       )}

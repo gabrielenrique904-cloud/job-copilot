@@ -1,12 +1,22 @@
 from core.ai_client import preguntar_a_gemini
 
 
-def generar_cv_adaptado(cv_texto: str, oferta_texto: str) -> str:
+def generar_cv_adaptado(cv_texto: str, oferta_texto: str, palabras_clave_ats: list = None) -> str:
     """
     Reescribe el CV del usuario destacando lo más relevante para la oferta,
     sin inventar experiencia que no esté en el CV original.
     Devuelve el CV adaptado como texto plano, listo para convertir a PDF.
     """
+
+    instruccion_palabras_clave = ""
+    if palabras_clave_ats:
+        lista_palabras = ", ".join(palabras_clave_ats)
+        instruccion_palabras_clave = (
+            f"\n- Presta especial atencion a estas palabras clave de la oferta: "
+            f"{lista_palabras}. Si el candidato tiene experiencia genuina relacionada "
+            f"con alguna, usa el termino exacto de la oferta. NO las incluyas si el "
+            f"candidato no tiene experiencia real relacionada."
+        )
 
     prompt = f"""
 Eres un experto en redacción de CVs y en optimización para sistemas ATS
@@ -28,7 +38,7 @@ REGLAS IMPORTANTES:
 - Estructura clara y directa, sin relleno ni frases genéricas vacías.
 - Devuelve SOLO el texto del CV final, sin explicaciones ni comentarios adicionales.
 - Adapta la terminología de los títulos de puesto y logros para reflejar el lenguaje
-  exacto de la oferta (sinónimos incluidos), sin inventar ni tergiversar lo que hiciste realmente.
+  exacto de la oferta (sinónimos incluidos), sin inventar ni tergiversar lo que hiciste realmente.{instruccion_palabras_clave}
 - Prioriza logros cuantificados (números, porcentajes, resultados medibles) sobre
   descripciones genéricas de responsabilidades. Si el CV original tiene datos numéricos,
   destácalos; no inventes cifras que no estén en el CV original.
@@ -47,6 +57,7 @@ OFERTA DE TRABAJO:
 """
 
     return preguntar_a_gemini(prompt)
+
 
 from fpdf import FPDF
 
@@ -72,7 +83,6 @@ def crear_pdf_desde_texto(texto_cv: str, ruta_salida: str = "cv_adaptado.pdf") -
     for linea in texto_cv.split("\n"):
         linea = linea.strip()
 
-        # Normalizamos caracteres que la fuente basica no soporta
         linea = linea.replace("–", "-").replace("—", "-")
         linea = linea.replace("’", "'").replace("‘", "'")
         linea = linea.replace("“", '"').replace("”", '"')
@@ -96,6 +106,7 @@ def crear_pdf_desde_texto(texto_cv: str, ruta_salida: str = "cv_adaptado.pdf") -
 
     pdf.output(ruta_salida)
     return ruta_salida
+
 
 if __name__ == "__main__":
     with open("mi_cv.txt", "r", encoding="utf-8") as archivo:

@@ -70,6 +70,8 @@ def buscar_y_analizar_ofertas(cv_texto: str, palabras_clave: str, ubicacion: str
             oferta["match"] = resultado["porcentaje_match"]
             oferta["fortalezas"] = resultado["fortalezas"]
             oferta["carencias"] = resultado["carencias"]
+            oferta["palabras_clave_ats"] = resultado.get("palabras_clave_ats", [])
+            oferta["palabras_clave_cumplidas"] = resultado.get("palabras_clave_cumplidas", [])
             ofertas_analizadas.append(oferta)
 
     ofertas_analizadas.sort(key=lambda o: o["match"], reverse=True)

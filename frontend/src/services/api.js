@@ -40,11 +40,15 @@ export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
   return respuesta.json();
 }
 
-export async function generarCV(cvTexto, ofertaTexto) {
+export async function generarCV(cvTexto, ofertaTexto, palabrasClaveAts = null) {
   const respuesta = await fetch(`${API_URL}/generar-cv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cv_texto: cvTexto, oferta_texto: ofertaTexto }),
+    body: JSON.stringify({
+      cv_texto: cvTexto,
+      oferta_texto: ofertaTexto,
+      palabras_clave_ats: palabrasClaveAts,
+    }),
   });
 
   if (!respuesta.ok) {
@@ -52,4 +56,16 @@ export async function generarCV(cvTexto, ofertaTexto) {
   }
 
   return respuesta.blob();
+}
+
+export async function extraerTextoCV(archivo) {
+  const formData = new FormData();
+  formData.append("archivo", archivo);
+
+  const respuesta = await fetch(`${API_URL}/extraer-cv`, {
+    method: "POST",
+    body: formData,
+  });
+
+  return respuesta.json();
 }

@@ -43,13 +43,19 @@ CV DEL CANDIDATO:
 OFERTA DE TRABAJO:
 {oferta_texto}
 
-Responde ÚNICAMENTE con un JSON válido, sin texto adicional antes ni después,
+Ademas, identifica entre 5 y 8 palabras clave o habilidades importantes que
+aparecen en la oferta de trabajo (las que un sistema ATS buscaria), y de esas,
+cuales SI aparecen tambien en el CV del candidato.
+
+Responde UNICAMENTE con un JSON valido, sin texto adicional antes ni despues,
 con exactamente esta estructura:
 
 {{
-  "porcentaje_match": <número entero del 0 al 100>,
+  "porcentaje_match": <numero entero del 0 al 100>,
   "fortalezas": ["punto fuerte 1", "punto fuerte 2"],
-  "carencias": ["lo que le falta 1", "lo que le falta 2"]
+  "carencias": ["lo que le falta 1", "lo que le falta 2"],
+  "palabras_clave_ats": ["palabra clave 1 de la oferta", "palabra clave 2", "palabra clave 3"],
+  "palabras_clave_cumplidas": ["palabra clave que el CV SI cumple", "otra que cumple"]
 }}
 """
 
