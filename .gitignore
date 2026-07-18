@@ -20,3 +20,9 @@ oferta.txt
 
 # CVs generados (contienen datos personales)
 cv_*.pdf
+
+# Logs de errores (se generan localmente)
+errores_app.log
+
+# Base de datos local (contiene datos de usuarios)
+job_copilot.db

@@ -30,14 +30,16 @@ def preguntar_a_gemini(mensaje: str, intentos: int = 3) -> str:
     for intento_actual in range(1, intentos + 1):
         try:
             respuesta = cliente.models.generate_content(
-                model="gemini-flash-lite-latest",
+               model="gemini-flash-lite-latest",
                 contents=mensaje
             )
             return respuesta.text
         except Exception as error:
             es_ultimo_intento = intento_actual == intentos
             if es_ultimo_intento:
-                return f"Error al conectar con Gemini tras {intentos} intentos: {error}"
+                from core.manejo_errores import registrar_error, mensaje_amigable_ia
+                registrar_error("Gemini", str(error))
+                return mensaje_amigable_ia()
 
             espera = intento_actual * 2
             print(f"Intento {intento_actual} fallo ({error}). Reintentando en {espera}s...")

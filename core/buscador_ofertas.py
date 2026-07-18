@@ -37,7 +37,8 @@ def buscar_ofertas(palabras_clave: str, ubicacion: str = "Madrid", max_dias_anti
         respuesta.raise_for_status()
         datos = respuesta.json()
     except requests.exceptions.RequestException as error:
-        print(f"Error al conectar con Adzuna: {error}")
+        from core.manejo_errores import registrar_error
+        registrar_error("Adzuna", str(error))
         return []
 
     ofertas_encontradas = []
