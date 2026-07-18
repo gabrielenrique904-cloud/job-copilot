@@ -26,3 +26,9 @@ errores_app.log
 
 # Base de datos local (contiene datos de usuarios)
 job_copilot.db
+
+# Dependencias de Node/React (se regeneran con npm install)
+frontend/node_modules/
+
+# Build de producción de React
+frontend/dist/
