@@ -22,10 +22,15 @@ function AnalizadorManual() {
       if (datos.texto) {
         setCvTexto(datos.texto);
       } else {
-        setAviso("No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.");
+        setAviso(
+          "No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.",
+        );
       }
     } catch (error) {
-      setAviso("No pudimos leer el archivo. Inténtalo de nuevo.");
+      setAviso(
+        error.message ||
+          "No pudimos conectar con el servidor. Inténtalo de nuevo.",
+      );
     } finally {
       setSubiendoArchivo(false);
     }
@@ -46,7 +51,7 @@ function AnalizadorManual() {
       const datos = await analizarMatch(cvTexto, ofertaTexto);
       setResultado(datos);
     } catch (error) {
-      setAviso("No pudimos conectar con el servidor. Inténtalo de nuevo.");
+      setAviso(error.message || "No pudimos conectar con el servidor. Inténtalo de nuevo.");
     } finally {
       setCargando(false);
     }
@@ -55,7 +60,11 @@ function AnalizadorManual() {
   async function manejarGenerarCV() {
     setGenerandoCV(true);
     try {
-      const blob = await generarCV(cvTexto, ofertaTexto, resultado.palabras_clave_ats);
+      const blob = await generarCV(
+        cvTexto,
+        ofertaTexto,
+        resultado.palabras_clave_ats,
+      );
       const url = window.URL.createObjectURL(blob);
       const enlace = document.createElement("a");
       enlace.href = url;
@@ -63,7 +72,7 @@ function AnalizadorManual() {
       enlace.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setAviso("No pudimos generar el CV. Inténtalo de nuevo.");
+      setAviso(error.message || "No pudimos generar el CV. Inténtalo de nuevo.");
     } finally {
       setGenerandoCV(false);
     }
@@ -75,7 +84,8 @@ function AnalizadorManual() {
         Analizar compatibilidad
       </h2>
       <p className="text-gray-600 mb-4">
-        Pega tu CV y una oferta de trabajo para ver el análisis de compatibilidad.
+        Pega tu CV y una oferta de trabajo para ver el análisis de
+        compatibilidad.
       </p>
 
       <div className="mb-4">
@@ -89,7 +99,9 @@ function AnalizadorManual() {
           disabled={subiendoArchivo}
           className="text-sm text-gray-600"
         />
-        {subiendoArchivo && <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>}
+        {subiendoArchivo && (
+          <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -129,27 +141,36 @@ function AnalizadorManual() {
                 {resultado.porcentaje_match}% match
               </div>
 
-              <h3 className="font-semibold text-gray-800 mt-4 mb-2">Fortalezas</h3>
+              <h3 className="font-semibold text-gray-800 mt-4 mb-2">
+                Fortalezas
+              </h3>
               <ul className="space-y-1">
                 {resultado.fortalezas.map((punto, i) => (
-                  <li key={i} className="text-gray-700">✅ {punto}</li>
-                ))}
-              </ul>
-
-              <h3 className="font-semibold text-gray-800 mt-4 mb-2">Carencias</h3>
-              <ul className="space-y-1">
-                {resultado.carencias.map((punto, i) => (
-                  <li key={i} className="text-gray-700">⚠️ {punto}</li>
+                  <li key={i} className="text-gray-700">
+                    ✅ {punto}
+                  </li>
                 ))}
               </ul>
 
               <h3 className="font-semibold text-gray-800 mt-4 mb-2">
-                Compatibilidad ATS: {resultado.palabras_clave_cumplidas.length} de{" "}
-                {resultado.palabras_clave_ats.length} palabras clave
+                Carencias
+              </h3>
+              <ul className="space-y-1">
+                {resultado.carencias.map((punto, i) => (
+                  <li key={i} className="text-gray-700">
+                    ⚠️ {punto}
+                  </li>
+                ))}
+              </ul>
+
+              <h3 className="font-semibold text-gray-800 mt-4 mb-2">
+                Compatibilidad ATS: {resultado.palabras_clave_cumplidas.length}{" "}
+                de {resultado.palabras_clave_ats.length} palabras clave
               </h3>
               <div className="flex flex-wrap gap-2 mb-2">
                 {resultado.palabras_clave_ats.map((palabra, i) => {
-                  const cumplida = resultado.palabras_clave_cumplidas.includes(palabra);
+                  const cumplida =
+                    resultado.palabras_clave_cumplidas.includes(palabra);
                   return (
                     <span
                       key={i}
@@ -170,7 +191,9 @@ function AnalizadorManual() {
                 disabled={generandoCV}
                 className="mt-4 bg-green-600 text-white rounded-lg px-6 py-2 font-medium hover:bg-green-700 disabled:opacity-50"
               >
-                {generandoCV ? "Generando CV..." : "📄 Generar CV adaptado (PDF)"}
+                {generandoCV
+                  ? "Generando CV..."
+                  : "📄 Generar CV adaptado (PDF)"}
               </button>
             </>
           )}

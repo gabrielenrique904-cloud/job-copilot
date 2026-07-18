@@ -63,7 +63,11 @@ function TarjetaOferta({ oferta, cvTexto }) {
     setGenerandoCV(true);
     setAviso("");
     try {
-      const blob = await generarCV(cvTexto, oferta.descripcion, oferta.palabras_clave_ats);
+      const blob = await generarCV(
+        cvTexto,
+        oferta.descripcion,
+        oferta.palabras_clave_ats,
+      );
       const url = window.URL.createObjectURL(blob);
       const enlace = document.createElement("a");
       enlace.href = url;
@@ -71,7 +75,9 @@ function TarjetaOferta({ oferta, cvTexto }) {
       enlace.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setAviso("No pudimos generar el CV. Inténtalo de nuevo.");
+      setAviso(
+        error.message || "No pudimos generar el CV. Inténtalo de nuevo.",
+      );
     } finally {
       setGenerandoCV(false);
     }
@@ -118,7 +124,8 @@ function TarjetaOferta({ oferta, cvTexto }) {
           </p>
           <div className="flex flex-wrap gap-2 mt-1">
             {oferta.palabras_clave_ats.map((palabra, i) => {
-              const cumplida = oferta.palabras_clave_cumplidas.includes(palabra);
+              const cumplida =
+                oferta.palabras_clave_cumplidas.includes(palabra);
               return (
                 <span
                   key={i}
@@ -139,7 +146,12 @@ function TarjetaOferta({ oferta, cvTexto }) {
       {aviso && <p className="text-red-600 text-sm mb-2">{aviso}</p>}
 
       <div className="flex gap-3">
-        <a href={oferta.url} target="_blank" rel="noopener noreferrer" className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50" >
+        <a
+          href={oferta.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50"
+        >
           Ver oferta original
         </a>
         <button
@@ -175,10 +187,14 @@ function BuscadorOfertas() {
       if (datos.texto) {
         setCvTexto(datos.texto);
       } else {
-        setAviso("No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.");
+        setAviso(
+          "No pudimos leer el archivo. Prueba con otro PDF/Word, o pega el texto manualmente.",
+        );
       }
     } catch (error) {
-      setAviso("No pudimos leer el archivo. Inténtalo de nuevo.");
+      setAviso(
+        error.message || "No pudimos leer el archivo. Inténtalo de nuevo.",
+      );
     } finally {
       setSubiendoArchivo(false);
     }
@@ -207,7 +223,8 @@ function BuscadorOfertas() {
       setOfertas(datos.ofertas);
     } catch (error) {
       setAviso(
-        "No pudimos buscar ofertas en este momento. Inténtalo de nuevo.",
+        error.message ||
+          "No pudimos buscar ofertas en este momento. Inténtalo de nuevo.",
       );
     } finally {
       setCargando(false);
@@ -235,7 +252,9 @@ function BuscadorOfertas() {
           disabled={subiendoArchivo}
           className="text-sm text-gray-600"
         />
-        {subiendoArchivo && <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>}
+        {subiendoArchivo && (
+          <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>
+        )}
       </div>
 
       <textarea
