@@ -39,3 +39,17 @@ export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
   });
   return respuesta.json();
 }
+
+export async function generarCV(cvTexto, ofertaTexto) {
+  const respuesta = await fetch(`${API_URL}/generar-cv`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cv_texto: cvTexto, oferta_texto: ofertaTexto }),
+  });
+
+  if (!respuesta.ok) {
+    throw new Error("No se pudo generar el CV");
+  }
+
+  return respuesta.blob();
+}

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { analizarMatch } from "../services/api";
+import { analizarMatch, generarCV } from "../services/api";
 
 function AnalizadorManual() {
   const [cvTexto, setCvTexto] = useState("");
   const [ofertaTexto, setOfertaTexto] = useState("");
+  const [generandoCV, setGenerandoCV] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [cargando, setCargando] = useState(false);
   const [aviso, setAviso] = useState("");
@@ -26,6 +27,23 @@ function AnalizadorManual() {
       setAviso("No pudimos conectar con el servidor. Inténtalo de nuevo.");
     } finally {
       setCargando(false);
+    }
+  }
+
+  async function manejarGenerarCV() {
+    setGenerandoCV(true);
+    try {
+      const blob = await generarCV(cvTexto, ofertaTexto);
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "cv_adaptado.pdf";
+      enlace.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setAviso("No pudimos generar el CV. Inténtalo de nuevo.");
+    } finally {
+      setGenerandoCV(false);
     }
   }
 
@@ -88,6 +106,14 @@ function AnalizadorManual() {
                   <li key={i} className="text-gray-700">⚠️ {punto}</li>
                 ))}
               </ul>
+
+              <button
+                onClick={manejarGenerarCV}
+                disabled={generandoCV}
+                className="mt-4 bg-green-600 text-white rounded-lg px-6 py-2 font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {generandoCV ? "Generando CV..." : "📄 Generar CV adaptado (PDF)"}
+              </button>
             </>
           )}
         </div>
