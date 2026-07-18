@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { registrarUsuario, iniciarSesion } from "../services/api";
+import { GoogleLogin } from "@react-oauth/google";
+import { registrarUsuario, iniciarSesion, iniciarSesionGoogle } from "../services/api";
 
 function AuthForm({ onLoginExitoso }) {
   const [modoRegistro, setModoRegistro] = useState(false);
@@ -37,6 +38,20 @@ function AuthForm({ onLoginExitoso }) {
     }
   }
 
+  async function manejarLoginGoogle(credentialResponse) {
+    setMensaje("");
+    try {
+      const resultado = await iniciarSesionGoogle(credentialResponse.credential);
+      if (resultado.exito) {
+        onLoginExitoso(resultado.usuario_id);
+      } else {
+        setMensaje(resultado.mensaje);
+      }
+    } catch (error) {
+      setMensaje("No pudimos conectar con el servidor. Inténtalo de nuevo.");
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
@@ -47,6 +62,19 @@ function AuthForm({ onLoginExitoso }) {
         <h2 className="text-lg font-semibold mb-4 text-gray-700">
           {modoRegistro ? "Crear cuenta" : "Iniciar sesión"}
         </h2>
+
+        <div className="mb-4 flex justify-center">
+          <GoogleLogin
+            onSuccess={manejarLoginGoogle}
+            onError={() => setMensaje("No pudimos iniciar sesión con Google.")}
+          />
+        </div>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 border-t border-gray-200" />
+          <span className="text-sm text-gray-400">o</span>
+          <div className="flex-1 border-t border-gray-200" />
+        </div>
 
         <form onSubmit={manejarSubmit} className="space-y-4">
           <input

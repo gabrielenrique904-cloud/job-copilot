@@ -7,6 +7,9 @@ from database.autenticacion import registrar_usuario, verificar_login
 from fastapi.responses import FileResponse
 from fastapi import UploadFile, File
 from core.lector_cv import extraer_texto_cv
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from database.modelos import Usuario, SessionLocal
 
 app = FastAPI(title="AI Job Copilot API")
 
@@ -91,3 +94,35 @@ async def extraer_cv(archivo: UploadFile = File(...)):
     texto = extraer_texto_cv(buffer)
 
     return {"texto": texto}
+
+GOOGLE_CLIENT_ID = "279674431785-mi0s5fm4ahco1n9a7lms03bnh766eaf1.apps.googleusercontent.com"
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
+@app.post("/login-google")
+def login_google(datos: GoogleLoginRequest):
+    try:
+        info_token = id_token.verify_oauth2_token(
+            datos.credential, google_requests.Request(), GOOGLE_CLIENT_ID
+        )
+    except ValueError:
+        return {"exito": False, "mensaje": "Token de Google invalido."}
+
+    email = info_token.get("email")
+
+    sesion = SessionLocal()
+    try:
+        usuario = sesion.query(Usuario).filter(Usuario.email == email).first()
+
+        if not usuario:
+            usuario = Usuario(email=email, password_hash="LOGIN_GOOGLE_SIN_PASSWORD")
+            sesion.add(usuario)
+            sesion.commit()
+            sesion.refresh(usuario)
+
+        return {"exito": True, "mensaje": "Login con Google correcto.", "usuario_id": usuario.id}
+    finally:
+        sesion.close()

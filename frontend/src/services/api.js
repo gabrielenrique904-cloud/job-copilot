@@ -1,15 +1,20 @@
 const API_URL = "http://127.0.0.1:8000";
 
-const TIEMPO_MINIMO_ENTRE_ACCIONES = 15000; // 15 segundos, en milisegundos
-let ultimaAccion = 0;
+const ultimasAcciones = {};
 
-function puedeEjecutarAccion() {
+function verificarLimite(clave, segundosEspera) {
   const ahora = Date.now();
-  if (ahora - ultimaAccion < TIEMPO_MINIMO_ENTRE_ACCIONES) {
-    const segundosRestantes = Math.ceil((TIEMPO_MINIMO_ENTRE_ACCIONES - (ahora - ultimaAccion)) / 1000);
+  const ultima = ultimasAcciones[clave] || 0;
+  const tiempoMinimo = segundosEspera * 1000;
+
+  if (ahora - ultima < tiempoMinimo) {
+    const segundosRestantes = Math.ceil((tiempoMinimo - (ahora - ultima)) / 1000);
     throw new Error(`Espera ${segundosRestantes} segundos antes de volver a intentarlo.`);
   }
-  ultimaAccion = ahora;
+}
+
+function marcarInicioAccion(clave) {
+  ultimasAcciones[clave] = Date.now();
 }
 
 export async function registrarUsuario(email, password) {
@@ -31,17 +36,18 @@ export async function iniciarSesion(email, password) {
 }
 
 export async function analizarMatch(cvTexto, ofertaTexto) {
-  puedeEjecutarAccion();
+  verificarLimite("analizar", 15);
   const respuesta = await fetch(`${API_URL}/analizar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ cv_texto: cvTexto, oferta_texto: ofertaTexto }),
   });
+  marcarInicioAccion("analizar");
   return respuesta.json();
 }
 
 export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
-  puedeEjecutarAccion();
+  verificarLimite("buscarOfertas", 45);
   const respuesta = await fetch(`${API_URL}/buscar-ofertas`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -51,11 +57,12 @@ export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
       ubicacion: ubicacion,
     }),
   });
+  marcarInicioAccion("buscarOfertas");
   return respuesta.json();
 }
 
 export async function generarCV(cvTexto, ofertaTexto, palabrasClaveAts = null) {
-  puedeEjecutarAccion();
+  verificarLimite("generarCV", 15);
   const respuesta = await fetch(`${API_URL}/generar-cv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,6 +77,7 @@ export async function generarCV(cvTexto, ofertaTexto, palabrasClaveAts = null) {
     throw new Error("No se pudo generar el CV");
   }
 
+  marcarInicioAccion("generarCV");
   return respuesta.blob();
 }
 
@@ -82,5 +90,14 @@ export async function extraerTextoCV(archivo) {
     body: formData,
   });
 
+  return respuesta.json();
+}
+
+export async function iniciarSesionGoogle(credential) {
+  const respuesta = await fetch(`${API_URL}/login-google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
   return respuesta.json();
 }
