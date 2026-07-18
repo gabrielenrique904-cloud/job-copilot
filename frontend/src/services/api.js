@@ -17,3 +17,25 @@ export async function iniciarSesion(email, password) {
   });
   return respuesta.json();
 }
+
+export async function analizarMatch(cvTexto, ofertaTexto) {
+  const respuesta = await fetch(`${API_URL}/analizar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cv_texto: cvTexto, oferta_texto: ofertaTexto }),
+  });
+  return respuesta.json();
+}
+
+export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
+  const respuesta = await fetch(`${API_URL}/buscar-ofertas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cv_texto: cvTexto,
+      palabras_clave: palabrasClave,
+      ubicacion: ubicacion,
+    }),
+  });
+  return respuesta.json();
+}
