@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { buscarOfertas, generarCV, extraerTextoCV } from "../services/api";
+import { buscarOfertas, generarCV, extraerTextoCV, sugerirInclusion } from "../services/api";
 import { iniciarContadorEspera } from "../utils/contador";
 
 const PROVINCIAS_ESPANA = [
@@ -54,6 +54,69 @@ const PROVINCIAS_ESPANA = [
   "Girona",
   "Toda España",
 ];
+
+function PalabraClaveChip({ palabra, cumplida, cvTexto }) {
+  const [mostrarSugerencia, setMostrarSugerencia] = useState(false);
+  const [sugerencia, setSugerencia] = useState("");
+  const [cargandoSugerencia, setCargandoSugerencia] = useState(false);
+  const [avisoSugerencia, setAvisoSugerencia] = useState("");
+
+  async function manejarSugerir() {
+    setMostrarSugerencia(true);
+    setCargandoSugerencia(true);
+    setAvisoSugerencia("");
+    try {
+      const datos = await sugerirInclusion(cvTexto, palabra);
+      setSugerencia(datos.sugerencia);
+    } catch (error) {
+      if (error.segundosRestantes) {
+        iniciarContadorEspera(setAvisoSugerencia, error.segundosRestantes);
+      } else {
+        setAvisoSugerencia(error.message || "No pudimos generar la sugerencia. Inténtalo de nuevo.");
+      }
+    } finally {
+      setCargandoSugerencia(false);
+    }
+  }
+
+  if (cumplida) {
+    return (
+      <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+        {palabra}
+      </span>
+    );
+  }
+
+  return (
+    <div className="inline-flex flex-col">
+      <div className="inline-flex items-center gap-1">
+        <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-500 line-through">
+          {palabra}
+        </span>
+        <button
+          onClick={manejarSugerir}
+          className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+        >
+          Sugerir inclusión
+        </button>
+      </div>
+
+      {mostrarSugerencia && (
+  <div className="mt-1 mb-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-900 max-w-xs">
+    <p>{cargandoSugerencia ? "Pensando una sugerencia..." : avisoSugerencia || sugerencia}</p>
+    {!cargandoSugerencia && sugerencia && !avisoSugerencia && (
+      <button
+        onClick={() => navigator.clipboard.writeText(sugerencia)}
+        className="mt-1 text-blue-600 hover:underline font-medium"
+      >
+        Copiar sugerencia
+      </button>
+    )}
+  </div>
+      )}
+    </div>
+  );
+}
 
 function TarjetaOferta({ oferta, cvTexto }) {
   const [generandoCV, setGenerandoCV] = useState(false);
@@ -125,21 +188,17 @@ function TarjetaOferta({ oferta, cvTexto }) {
             Compatibilidad ATS: {oferta.palabras_clave_cumplidas.length} de{" "}
             {oferta.palabras_clave_ats.length} palabras clave
           </p>
-          <div className="flex flex-wrap gap-2 mt-1">
+          <div className="flex flex-wrap gap-2 mt-1 items-start">
             {oferta.palabras_clave_ats.map((palabra, i) => {
               const cumplida =
                 oferta.palabras_clave_cumplidas.includes(palabra);
               return (
-                <span
+                <PalabraClaveChip
                   key={i}
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    cumplida
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-500 line-through"
-                  }`}
-                >
-                  {palabra}
-                </span>
+                  palabra={palabra}
+                  cumplida={cumplida}
+                  cvTexto={cvTexto}
+                />
               );
             })}
           </div>

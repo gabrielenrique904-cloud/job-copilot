@@ -1,7 +1,9 @@
 from core.ai_client import preguntar_a_gemini
 
 
-def generar_cv_adaptado(cv_texto: str, oferta_texto: str, palabras_clave_ats: list = None) -> str:
+def generar_cv_adaptado(
+    cv_texto: str, oferta_texto: str, palabras_clave_ats: list = None
+) -> str:
     """
     Reescribe el CV del usuario destacando lo más relevante para la oferta,
     sin inventar experiencia que no esté en el CV original.
@@ -25,9 +27,13 @@ lo más relevante de cara a la oferta de trabajo indicada.
 
 REGLAS IMPORTANTES:
 - NO inventes experiencia, títulos ni habilidades que no estén en el CV original.
-- El resultado DEBE caber en una sola página (aproximadamente 400-450 palabras en total).
-  Para lograrlo: prioriza SOLO la experiencia y logros más relevantes para esta oferta.
-  Resume o elimina experiencia antigua o poco relevante en vez de incluirlo todo.
+- REGLA ABSOLUTA E INNEGOCIABLE: el resultado DEBE caber en una sola pagina A4.
+  Maximo 380 palabras en total, sin excepcion. Esto es mas importante que incluir
+  todo el detalle posible: prioriza SOLO la experiencia y logros mas relevantes para
+  esta oferta especifica. Resume agresivamente o elimina por completo experiencia
+  antigua, poco relevante, o secciones secundarias si es necesario para cumplir
+  este limite. Es preferible un CV corto y enfocado a uno completo que ocupe dos
+  paginas.
 - Optimización ATS: incluye de forma natural las palabras clave y términos exactos
   que aparecen en la oferta de trabajo (títulos de puesto, tecnologías, habilidades),
   siempre que sean ciertos según el CV original.
@@ -59,25 +65,70 @@ OFERTA DE TRABAJO:
     return preguntar_a_gemini(prompt)
 
 
+def sugerir_inclusion_palabra_clave(cv_texto: str, palabra_clave: str) -> str:
+    """
+    Sugiere cómo el candidato podría mencionar una palabra clave específica
+    de forma natural, basándose únicamente en experiencia real de su CV.
+    Si no hay relación genuina, lo indica claramente en vez de inventar.
+    """
+    prompt = f"""
+Eres un experto en redacción de CVs. A continuación tienes el CV de un
+candidato y una palabra clave especifica que NO aparece actualmente en su CV.
+
+Tu tarea: revisa si el candidato tiene alguna experiencia REAL relacionada
+(aunque este descrita con otras palabras) que permita incluir esa palabra
+clave de forma honesta. Si la encuentras, sugiere una frase corta y natural
+que el candidato podria añadir o modificar en su CV para reflejarlo.
+
+Si NO hay ninguna experiencia real relacionada, responde exactamente:
+"No encontramos experiencia relacionada en tu CV para incluir esta palabra
+de forma honesta. Considera si realmente tienes esta habilidad antes de
+añadirla."
+
+NUNCA inventes experiencia que el candidato no tenga.
+
+CV DEL CANDIDATO:
+{cv_texto}
+
+PALABRA CLAVE A CONSIDERAR:
+{palabra_clave}
+
+Responde solo con la sugerencia o el mensaje de "no encontrado", sin
+explicaciones adicionales.
+"""
+
+    return preguntar_a_gemini(prompt)
+
+
 from fpdf import FPDF
 
 
-def crear_pdf_desde_texto(texto_cv: str, ruta_salida: str = "cv_adaptado.pdf") -> str:
+def crear_pdf_desde_texto(
+    texto_cv: str, ruta_salida: str = "cv_adaptado.pdf", tamano_fuente: float = 9.5
+) -> str:
     """
     Convierte el texto del CV adaptado en un archivo PDF compacto, pensado
-    para caber en una sola página cuando el texto está bien resumido.
+    para caber en una sola página. Si el contenido no cabe con el tamaño
+    de fuente indicado, se reintenta automáticamente con letra más pequeña,
+    hasta un límite razonable, para garantizar que nunca se generen 2 páginas.
     """
     pdf = FPDF(format="A4")
     pdf.set_margins(left=14, top=12, right=14)
     pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
-    pdf.set_font("Helvetica", size=9.5)
+    pdf.set_font("Helvetica", size=tamano_fuente)
 
     ancho_util = pdf.w - pdf.l_margin - pdf.r_margin
     titulos_seccion = {
-        "PERFIL PROFESIONAL", "EXPERIENCIA", "EXPERIENCIA PROFESIONAL",
-        "HABILIDADES", "HABILIDADES CLAVE", "FORMACIÓN",
-        "FORMACIÓN COMPLEMENTARIA", "IDIOMAS", "LIDERAZGO Y VOLUNTARIADO"
+        "PERFIL PROFESIONAL",
+        "EXPERIENCIA",
+        "EXPERIENCIA PROFESIONAL",
+        "HABILIDADES",
+        "HABILIDADES CLAVE",
+        "FORMACIÓN",
+        "FORMACIÓN COMPLEMENTARIA",
+        "IDIOMAS",
+        "LIDERAZGO Y VOLUNTARIADO",
     }
 
     for linea in texto_cv.split("\n"):
@@ -94,15 +145,18 @@ def crear_pdf_desde_texto(texto_cv: str, ruta_salida: str = "cv_adaptado.pdf") -
             pdf.ln(2)
         elif linea_segura.upper() in titulos_seccion:
             pdf.ln(2)
-            pdf.set_font("Helvetica", "B", 11)
+            pdf.set_font("Helvetica", "B", tamano_fuente + 1.5)
             pdf.multi_cell(ancho_util, 6, linea_segura)
-            pdf.set_font("Helvetica", size=9.5)
+            pdf.set_font("Helvetica", size=tamano_fuente)
         elif linea_segura.startswith("*") or linea_segura.startswith("-"):
             texto_viñeta = linea_segura.lstrip("*-").strip()
             pdf.set_x(pdf.l_margin + 3)
             pdf.multi_cell(ancho_util - 3, 5, f"- {texto_viñeta}")
         else:
             pdf.multi_cell(ancho_util, 5, linea_segura)
+
+    if pdf.page_no() > 1 and tamano_fuente > 7.5:
+        return crear_pdf_desde_texto(texto_cv, ruta_salida, tamano_fuente - 0.5)
 
     pdf.output(ruta_salida)
     return ruta_salida

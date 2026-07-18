@@ -103,3 +103,12 @@ export async function iniciarSesionGoogle(credential) {
   });
   return respuesta.json();
 }
+
+export async function sugerirInclusion(cvTexto, palabraClave) {
+  const respuesta = await fetch(`${API_URL}/sugerir-inclusion`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cv_texto: cvTexto, palabra_clave: palabraClave }),
+  });
+  return respuesta.json();
+}

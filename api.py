@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from core.analizador_cv import analizar_match
-from core.generador_cv import generar_cv_adaptado, crear_pdf_desde_texto
+from core.generador_cv import generar_cv_adaptado, crear_pdf_desde_texto, sugerir_inclusion_palabra_clave
 from core.buscador_ofertas import buscar_y_analizar_ofertas
 from database.autenticacion import registrar_usuario, verificar_login
 from fastapi.responses import FileResponse
@@ -51,6 +51,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SugerirInclusionRequest(BaseModel):
+    cv_texto: str
+    palabra_clave: str
+
+
 @app.get("/")
 def raiz():
     return {"mensaje": "AI Job Copilot API funcionando correctamente"}
@@ -83,6 +88,7 @@ def registro(datos: RegistroRequest):
 def login(datos: LoginRequest):
     return verificar_login(datos.email, datos.password)
 
+
 @app.post("/extraer-cv")
 async def extraer_cv(archivo: UploadFile = File(...)):
     import io
@@ -94,6 +100,13 @@ async def extraer_cv(archivo: UploadFile = File(...)):
     texto = extraer_texto_cv(buffer)
 
     return {"texto": texto}
+
+
+@app.post("/sugerir-inclusion")
+def sugerir_inclusion(datos: SugerirInclusionRequest):
+    sugerencia = sugerir_inclusion_palabra_clave(datos.cv_texto, datos.palabra_clave)
+    return {"sugerencia": sugerencia}
+
 
 GOOGLE_CLIENT_ID = "279674431785-mi0s5fm4ahco1n9a7lms03bnh766eaf1.apps.googleusercontent.com"
 
