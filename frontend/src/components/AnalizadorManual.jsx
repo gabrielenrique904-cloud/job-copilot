@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { analizarMatch, generarCV, extraerTextoCV } from "../services/api";
+import { iniciarContadorEspera } from "../utils/contador";
 
 function AnalizadorManual() {
   const [cvTexto, setCvTexto] = useState("");
@@ -51,7 +52,11 @@ function AnalizadorManual() {
       const datos = await analizarMatch(cvTexto, ofertaTexto);
       setResultado(datos);
     } catch (error) {
-      setAviso(error.message || "No pudimos conectar con el servidor. Inténtalo de nuevo.");
+      if (error.segundosRestantes) {
+        iniciarContadorEspera(setAviso, error.segundosRestantes);
+      } else {
+        setAviso(error.message || "No pudimos conectar con el servidor. Inténtalo de nuevo.");
+      }
     } finally {
       setCargando(false);
     }
@@ -72,7 +77,11 @@ function AnalizadorManual() {
       enlace.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setAviso(error.message || "No pudimos generar el CV. Inténtalo de nuevo.");
+      if (error.segundosRestantes) {
+        iniciarContadorEspera(setAviso, error.segundosRestantes);
+      } else {
+        setAviso(error.message || "No pudimos generar el CV. Inténtalo de nuevo.");
+      }
     } finally {
       setGenerandoCV(false);
     }
@@ -89,18 +98,27 @@ function AnalizadorManual() {
       </p>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           O sube tu CV (PDF o Word)
         </label>
+        <label
+          htmlFor="input-cv-manual"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 ${
+            subiendoArchivo ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          📎 Seleccionar archivo
+        </label>
         <input
+          id="input-cv-manual"
           type="file"
           accept=".pdf,.docx"
           onChange={manejarSubirArchivo}
           disabled={subiendoArchivo}
-          className="text-sm text-gray-600"
+          className="hidden"
         />
         {subiendoArchivo && (
-          <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>
+          <p className="text-blue-600 text-sm mt-2">Leyendo archivo...</p>
         )}
       </div>
 
@@ -185,6 +203,30 @@ function AnalizadorManual() {
                   );
                 })}
               </div>
+
+              {resultado.red_flags && resultado.red_flags.length > 0 && (
+                <>
+                  <h3 className="font-semibold text-gray-800 mt-4 mb-2">
+                    ⚠️ Señales de alerta en la oferta
+                  </h3>
+                  <div className="space-y-2 mb-2">
+                    {resultado.red_flags.map((flag, i) => (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-lg text-sm border-l-4 ${
+                          flag.gravedad === "alta"
+                            ? "bg-red-50 border-red-500 text-red-800"
+                            : flag.gravedad === "media"
+                            ? "bg-amber-50 border-amber-500 text-amber-800"
+                            : "bg-gray-50 border-gray-400 text-gray-700"
+                        }`}
+                      >
+                        {flag.senal}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               <button
                 onClick={manejarGenerarCV}

@@ -47,6 +47,15 @@ Ademas, identifica entre 5 y 8 palabras clave o habilidades importantes que
 aparecen en la oferta de trabajo (las que un sistema ATS buscaria), y de esas,
 cuales SI aparecen tambien en el CV del candidato.
 
+Ademas, analiza la oferta de trabajo en si misma (no el CV) y detecta posibles
+senales de alerta ("red flags") para el candidato, como: salario no especificado
+o vago, descripcion del puesto excesivamente genérica o con relleno corporativo
+vacio, exigencias desproporcionadas para el nivel del puesto, lenguaje que sugiere
+sobrecarga de trabajo ("trabajar bajo presion constante", "disponibilidad total"),
+o ausencia de informacion clara sobre el rol. Si no detectas ninguna señal real,
+devuelve una lista vacia en red_flags. No inventes señales que no esten realmente
+sugeridas por el texto de la oferta.
+
 Responde UNICAMENTE con un JSON valido, sin texto adicional antes ni despues,
 con exactamente esta estructura:
 
@@ -55,7 +64,10 @@ con exactamente esta estructura:
   "fortalezas": ["punto fuerte 1", "punto fuerte 2"],
   "carencias": ["lo que le falta 1", "lo que le falta 2"],
   "palabras_clave_ats": ["palabra clave 1 de la oferta", "palabra clave 2", "palabra clave 3"],
-  "palabras_clave_cumplidas": ["palabra clave que el CV SI cumple", "otra que cumple"]
+  "palabras_clave_cumplidas": ["palabra clave que el CV SI cumple", "otra que cumple"],
+  "red_flags": [
+    {{"senal": "descripcion breve de la senal de alerta", "gravedad": "alta, media o baja"}}
+  ]
 }}
 """
 

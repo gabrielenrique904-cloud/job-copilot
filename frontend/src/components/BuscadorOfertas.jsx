@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { buscarOfertas, generarCV, extraerTextoCV } from "../services/api";
+import { iniciarContadorEspera } from "../utils/contador";
 
 const PROVINCIAS_ESPANA = [
   "Madrid",
@@ -75,9 +76,11 @@ function TarjetaOferta({ oferta, cvTexto }) {
       enlace.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setAviso(
-        error.message || "No pudimos generar el CV. Inténtalo de nuevo.",
-      );
+      if (error.segundosRestantes) {
+        iniciarContadorEspera(setAviso, error.segundosRestantes);
+      } else {
+        setAviso(error.message || "No pudimos generar el CV. Inténtalo de nuevo.");
+      }
     } finally {
       setGenerandoCV(false);
     }
@@ -140,14 +143,37 @@ function TarjetaOferta({ oferta, cvTexto }) {
               );
             })}
           </div>
+
+          {oferta.red_flags && oferta.red_flags.length > 0 && (
+            <>
+              <p className="font-medium text-gray-700 mt-3">
+                ⚠️ Señales de alerta:
+              </p>
+              <div className="space-y-1 mt-1">
+                {oferta.red_flags.map((flag, i) => (
+                  <div
+                    key={i}
+                    className={`p-2 rounded text-xs border-l-4 ${
+                      flag.gravedad === "alta"
+                        ? "bg-red-50 border-red-500 text-red-800"
+                        : flag.gravedad === "media"
+                        ? "bg-amber-50 border-amber-500 text-amber-800"
+                        : "bg-gray-50 border-gray-400 text-gray-700"
+                    }`}
+                  >
+                    {flag.senal}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
       {aviso && <p className="text-red-600 text-sm mb-2">{aviso}</p>}
 
       <div className="flex gap-3">
-        <a
-          href={oferta.url}
+        <a href={oferta.url}
           target="_blank"
           rel="noopener noreferrer"
           className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50"
@@ -222,10 +248,14 @@ function BuscadorOfertas() {
       );
       setOfertas(datos.ofertas);
     } catch (error) {
-      setAviso(
-        error.message ||
-          "No pudimos buscar ofertas en este momento. Inténtalo de nuevo.",
-      );
+      if (error.segundosRestantes) {
+        iniciarContadorEspera(setAviso, error.segundosRestantes);
+      } else {
+        setAviso(
+          error.message ||
+            "No pudimos buscar ofertas en este momento. Inténtalo de nuevo.",
+        );
+      }
     } finally {
       setCargando(false);
     }
@@ -242,18 +272,27 @@ function BuscadorOfertas() {
       </p>
 
       <div className="mb-3">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
           O sube tu CV (PDF o Word)
         </label>
+        <label
+          htmlFor="input-cv-busqueda"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 ${
+            subiendoArchivo ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          📎 Seleccionar archivo
+        </label>
         <input
+          id="input-cv-busqueda"
           type="file"
           accept=".pdf,.docx"
           onChange={manejarSubirArchivo}
           disabled={subiendoArchivo}
-          className="text-sm text-gray-600"
+          className="hidden"
         />
         {subiendoArchivo && (
-          <p className="text-blue-600 text-sm mt-1">Leyendo archivo...</p>
+          <p className="text-blue-600 text-sm mt-2">Leyendo archivo...</p>
         )}
       </div>
 

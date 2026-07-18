@@ -9,7 +9,9 @@ function verificarLimite(clave, segundosEspera) {
 
   if (ahora - ultima < tiempoMinimo) {
     const segundosRestantes = Math.ceil((tiempoMinimo - (ahora - ultima)) / 1000);
-    throw new Error(`Espera ${segundosRestantes} segundos antes de volver a intentarlo.`);
+    const error = new Error(`Espera ${segundosRestantes} segundos antes de volver a intentarlo.`);
+    error.segundosRestantes = segundosRestantes;
+    throw error;
   }
 }
 
