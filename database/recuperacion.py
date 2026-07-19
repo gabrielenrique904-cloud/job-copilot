@@ -1,15 +1,16 @@
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import resend
 from dotenv import load_dotenv
-from database.modelos import Usuario, TokenRecuperacion, SessionLocal
+from database.modelos import Usuario, TokenRecuperacion, IntentoRecuperacion, SessionLocal
 
 load_dotenv()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
 MINUTOS_EXPIRACION = 30
+LIMITE_SOLICITUDES_DIARIAS = 3
 
 
 def solicitar_recuperacion(email: str) -> dict:
@@ -17,10 +18,32 @@ def solicitar_recuperacion(email: str) -> dict:
     Genera un token de recuperación y envía un email con el enlace.
     Por seguridad, siempre devuelve el mismo mensaje de éxito, exista
     o no el email en la base de datos (evita revelar qué emails están
-    registrados).
+    registrados). Limita a un maximo de solicitudes por email al dia
+    para evitar spam del endpoint (que dispara emails reales).
     """
     sesion = SessionLocal()
     try:
+        hoy = date.today()
+
+        intento = (
+            sesion.query(IntentoRecuperacion)
+            .filter(IntentoRecuperacion.email == email, IntentoRecuperacion.fecha == hoy)
+            .first()
+        )
+
+        if not intento:
+            intento = IntentoRecuperacion(email=email, fecha=hoy, contador=0)
+            sesion.add(intento)
+
+        if intento.contador >= LIMITE_SOLICITUDES_DIARIAS:
+            return {
+                "exito": True,
+                "mensaje": "Si el email existe, recibirás un enlace de recuperación."
+            }
+
+        intento.contador += 1
+        sesion.commit()
+
         usuario = sesion.query(Usuario).filter(Usuario.email == email).first()
 
         if not usuario:

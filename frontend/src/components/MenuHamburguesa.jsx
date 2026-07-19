@@ -40,6 +40,13 @@ function MenuHamburguesa({ onCerrarSesion, onAbrirModal }) {
             >
               Política de privacidad
             </button>
+            
+              href="mailto:gabrielenrique904@gmail.com?subject=Contacto desde AI Job Copilot"
+              onClick={() => setAbierto(false)}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              Contactar
+            </a>
             <div className="border-t border-gray-100 my-1"></div>
             <button
               onClick={() => {

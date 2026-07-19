@@ -50,6 +50,32 @@ class UsoDiario(Base):
     contador = Column(Integer, default=0)
 
 
+class IntentoRecuperacion(Base):
+    """
+    Cuenta cuántas veces se ha solicitado un enlace de recuperacion de
+    password para un email especifico en un dia determinado. Protege
+    contra spam del endpoint de recuperacion (que dispara emails reales).
+    """
+    __tablename__ = "intentos_recuperacion"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False)
+    fecha = Column(Date, nullable=False)
+    contador = Column(Integer, default=0)
+
+class IntentoLogin(Base):
+    """
+    Registra intentos fallidos de login para un email especifico.
+    Se usa para bloquear temporalmente el login tras varios fallos
+    seguidos, protegiendo contra ataques de fuerza bruta.
+    """
+    __tablename__ = "intentos_login"
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False)
+    fecha_intento = Column(DateTime, default=datetime.utcnow)
+
+
 # El archivo job_copilot.db se crea automáticamente en la raíz del proyecto
 engine = create_engine("sqlite:///job_copilot.db")
 Base.metadata.create_all(engine)
