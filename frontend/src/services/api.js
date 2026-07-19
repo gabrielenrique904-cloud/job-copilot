@@ -37,23 +37,24 @@ export async function iniciarSesion(email, password) {
   return respuesta.json();
 }
 
-export async function analizarMatch(cvTexto, ofertaTexto) {
+export async function analizarMatch(usuarioId, cvTexto, ofertaTexto) {
   verificarLimite("analizar", 15);
   const respuesta = await fetch(`${API_URL}/analizar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cv_texto: cvTexto, oferta_texto: ofertaTexto }),
+    body: JSON.stringify({ usuario_id: usuarioId, cv_texto: cvTexto, oferta_texto: ofertaTexto }),
   });
   marcarInicioAccion("analizar");
   return respuesta.json();
 }
 
-export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
+export async function buscarOfertas(usuarioId, cvTexto, palabrasClave, ubicacion) {
   verificarLimite("buscarOfertas", 45);
   const respuesta = await fetch(`${API_URL}/buscar-ofertas`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      usuario_id: usuarioId,
       cv_texto: cvTexto,
       palabras_clave: palabrasClave,
       ubicacion: ubicacion,
@@ -63,15 +64,17 @@ export async function buscarOfertas(cvTexto, palabrasClave, ubicacion) {
   return respuesta.json();
 }
 
-export async function generarCV(cvTexto, ofertaTexto, palabrasClaveAts = null) {
+export async function generarCV(usuarioId, cvTexto, ofertaTexto, palabrasClaveAts = null, inclusionesConfirmadas = null) {
   verificarLimite("generarCV", 15);
   const respuesta = await fetch(`${API_URL}/generar-cv`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      usuario_id: usuarioId,
       cv_texto: cvTexto,
       oferta_texto: ofertaTexto,
       palabras_clave_ats: palabrasClaveAts,
+      inclusiones_confirmadas: inclusionesConfirmadas,
     }),
   });
 
@@ -104,11 +107,29 @@ export async function iniciarSesionGoogle(credential) {
   return respuesta.json();
 }
 
-export async function sugerirInclusion(cvTexto, palabraClave) {
+export async function sugerirInclusion(usuarioId, cvTexto, palabraClave) {
   const respuesta = await fetch(`${API_URL}/sugerir-inclusion`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ cv_texto: cvTexto, palabra_clave: palabraClave }),
+    body: JSON.stringify({ usuario_id: usuarioId, cv_texto: cvTexto, palabra_clave: palabraClave }),
+  });
+  return respuesta.json();
+}
+
+export async function solicitarRecuperacion(email) {
+  const respuesta = await fetch(`${API_URL}/olvide-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return respuesta.json();
+}
+
+export async function resetearPassword(token, nuevaPassword) {
+  const respuesta = await fetch(`${API_URL}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, nueva_password: nuevaPassword }),
   });
   return respuesta.json();
 }

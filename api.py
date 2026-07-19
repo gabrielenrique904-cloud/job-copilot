@@ -4,6 +4,8 @@ from core.analizador_cv import analizar_match
 from core.generador_cv import generar_cv_adaptado, crear_pdf_desde_texto, sugerir_inclusion_palabra_clave
 from core.buscador_ofertas import buscar_y_analizar_ofertas
 from database.autenticacion import registrar_usuario, verificar_login
+from database.recuperacion import solicitar_recuperacion, resetear_password
+from database.limites import verificar_y_registrar_uso
 from fastapi.responses import FileResponse
 from fastapi import UploadFile, File
 from core.lector_cv import extraer_texto_cv
@@ -25,17 +27,21 @@ app.add_middleware(
 
 
 class AnalisisRequest(BaseModel):
+    usuario_id: int
     cv_texto: str
     oferta_texto: str
 
 
 class GenerarCVRequest(BaseModel):
+    usuario_id: int
     cv_texto: str
     oferta_texto: str
     palabras_clave_ats: list[str] | None = None
+    inclusiones_confirmadas: list[str] | None = None
 
 
 class BusquedaRequest(BaseModel):
+    usuario_id: int
     cv_texto: str
     palabras_clave: str
     ubicacion: str | None = None
@@ -52,8 +58,18 @@ class LoginRequest(BaseModel):
 
 
 class SugerirInclusionRequest(BaseModel):
+    usuario_id: int
     cv_texto: str
     palabra_clave: str
+
+
+class OlvidePasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    nueva_password: str
 
 
 @app.get("/")
@@ -63,18 +79,35 @@ def raiz():
 
 @app.post("/analizar")
 def analizar(datos: AnalisisRequest):
+    verificacion = verificar_y_registrar_uso(datos.usuario_id, "analizar")
+    if not verificacion["permitido"]:
+        return {"error": verificacion["mensaje"]}
+
     return analizar_match(datos.cv_texto, datos.oferta_texto)
 
 
 @app.post("/generar-cv")
 def generar_cv(datos: GenerarCVRequest):
-    cv_adaptado_texto = generar_cv_adaptado(datos.cv_texto, datos.oferta_texto, datos.palabras_clave_ats)
+    verificacion = verificar_y_registrar_uso(datos.usuario_id, "generar_cv")
+    if not verificacion["permitido"]:
+        return {"error": verificacion["mensaje"]}
+
+    cv_adaptado_texto = generar_cv_adaptado(
+        datos.cv_texto,
+        datos.oferta_texto,
+        datos.palabras_clave_ats,
+        datos.inclusiones_confirmadas,
+    )
     ruta_pdf = crear_pdf_desde_texto(cv_adaptado_texto)
     return FileResponse(ruta_pdf, media_type="application/pdf", filename="cv_adaptado.pdf")
 
 
 @app.post("/buscar-ofertas")
 def buscar_ofertas_endpoint(datos: BusquedaRequest):
+    verificacion = verificar_y_registrar_uso(datos.usuario_id, "buscar_ofertas")
+    if not verificacion["permitido"]:
+        return {"error": verificacion["mensaje"]}
+
     resultados = buscar_y_analizar_ofertas(datos.cv_texto, datos.palabras_clave, ubicacion=datos.ubicacion)
     return {"ofertas": resultados}
 
@@ -104,8 +137,22 @@ async def extraer_cv(archivo: UploadFile = File(...)):
 
 @app.post("/sugerir-inclusion")
 def sugerir_inclusion(datos: SugerirInclusionRequest):
+    verificacion = verificar_y_registrar_uso(datos.usuario_id, "sugerir_inclusion")
+    if not verificacion["permitido"]:
+        return {"sugerencia": verificacion["mensaje"]}
+
     sugerencia = sugerir_inclusion_palabra_clave(datos.cv_texto, datos.palabra_clave)
     return {"sugerencia": sugerencia}
+
+
+@app.post("/olvide-password")
+def olvide_password(datos: OlvidePasswordRequest):
+    return solicitar_recuperacion(datos.email)
+
+
+@app.post("/reset-password")
+def reset_password(datos: ResetPasswordRequest):
+    return resetear_password(datos.token, datos.nueva_password)
 
 
 GOOGLE_CLIENT_ID = "279674431785-mi0s5fm4ahco1n9a7lms03bnh766eaf1.apps.googleusercontent.com"

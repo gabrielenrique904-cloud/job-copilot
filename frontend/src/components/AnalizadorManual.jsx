@@ -2,18 +2,19 @@ import { useState } from "react";
 import { analizarMatch, generarCV, extraerTextoCV, sugerirInclusion } from "../services/api";
 import { iniciarContadorEspera } from "../utils/contador";
 
-function PalabraClaveChip({ palabra, cumplida, cvTexto }) {
+function PalabraClaveChip({ palabra, cumplida, cvTexto, usuarioId, onConfirmarInclusion }) {
   const [mostrarSugerencia, setMostrarSugerencia] = useState(false);
   const [sugerencia, setSugerencia] = useState("");
   const [cargandoSugerencia, setCargandoSugerencia] = useState(false);
   const [avisoSugerencia, setAvisoSugerencia] = useState("");
+  const [confirmado, setConfirmado] = useState(false);
 
   async function manejarSugerir() {
     setMostrarSugerencia(true);
     setCargandoSugerencia(true);
     setAvisoSugerencia("");
     try {
-      const datos = await sugerirInclusion(cvTexto, palabra);
+      const datos = await sugerirInclusion(usuarioId, cvTexto, palabra);
       setSugerencia(datos.sugerencia);
     } catch (error) {
       if (error.segundosRestantes) {
@@ -25,6 +26,15 @@ function PalabraClaveChip({ palabra, cumplida, cvTexto }) {
       setCargandoSugerencia(false);
     }
   }
+
+  function manejarConfirmar(evento) {
+    const marcado = evento.target.checked;
+    setConfirmado(marcado);
+    onConfirmarInclusion(palabra, marcado ? sugerencia : null);
+  }
+
+  const esSugerenciaValida =
+    sugerencia && !sugerencia.toLowerCase().startsWith("no encontramos experiencia");
 
   if (cumplida) {
     return (
@@ -49,18 +59,36 @@ function PalabraClaveChip({ palabra, cumplida, cvTexto }) {
       </div>
 
       {mostrarSugerencia && (
-  <div className="mt-1 mb-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-900 max-w-xs">
-    <p>{cargandoSugerencia ? "Pensando una sugerencia..." : avisoSugerencia || sugerencia}</p>
-    {!cargandoSugerencia && sugerencia && !avisoSugerencia && (
-      <button
-        onClick={() => navigator.clipboard.writeText(sugerencia)}
-        className="mt-1 text-blue-600 hover:underline font-medium"
-      >
-        Copiar sugerencia
-      </button>
-    )}
-  </div>
-)}
+        <div className="mt-1 mb-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-900 max-w-xs">
+          <p>{cargandoSugerencia ? "Pensando una sugerencia..." : avisoSugerencia || sugerencia}</p>
+
+          {!cargandoSugerencia && sugerencia && !avisoSugerencia && (
+            <>
+              <button
+                onClick={() => navigator.clipboard.writeText(sugerencia)}
+                className="mt-1 mr-3 text-blue-600 hover:underline font-medium"
+              >
+                Copiar sugerencia
+              </button>
+
+              {esSugerenciaValida && (
+                <label className="flex items-start gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={confirmado}
+                    onChange={manejarConfirmar}
+                    className="mt-0.5"
+                  />
+                  <span className="text-blue-900">
+                    Confirmo que esta experiencia es real y verídica, y asumo toda
+                    la responsabilidad de incluirla en mi CV.
+                  </span>
+                </label>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -73,6 +101,16 @@ function AnalizadorManual() {
   const [cargando, setCargando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [inclusionesConfirmadas, setInclusionesConfirmadas] = useState({});
+
+  const usuarioId = Number(localStorage.getItem("usuarioId"));
+
+  function manejarConfirmarInclusion(palabra, texto) {
+    setInclusionesConfirmadas((anterior) => ({
+      ...anterior,
+      [palabra]: texto,
+    }));
+  }
 
   async function manejarSubirArchivo(evento) {
     const archivo = evento.target.files[0];
@@ -110,9 +148,10 @@ function AnalizadorManual() {
 
     setCargando(true);
     setResultado(null);
+    setInclusionesConfirmadas({});
 
     try {
-      const datos = await analizarMatch(cvTexto, ofertaTexto);
+      const datos = await analizarMatch(usuarioId, cvTexto, ofertaTexto);
       setResultado(datos);
     } catch (error) {
       if (error.segundosRestantes) {
@@ -128,10 +167,14 @@ function AnalizadorManual() {
   async function manejarGenerarCV() {
     setGenerandoCV(true);
     try {
+      const listaInclusiones = Object.values(inclusionesConfirmadas).filter(Boolean);
+
       const blob = await generarCV(
+        usuarioId,
         cvTexto,
         ofertaTexto,
         resultado.palabras_clave_ats,
+        listaInclusiones.length > 0 ? listaInclusiones : null,
       );
       const url = window.URL.createObjectURL(blob);
       const enlace = document.createElement("a");
@@ -258,6 +301,8 @@ function AnalizadorManual() {
                       palabra={palabra}
                       cumplida={cumplida}
                       cvTexto={cvTexto}
+                      usuarioId={usuarioId}
+                      onConfirmarInclusion={manejarConfirmarInclusion}
                     />
                   );
                 })}

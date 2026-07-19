@@ -2,7 +2,10 @@ from core.ai_client import preguntar_a_gemini
 
 
 def generar_cv_adaptado(
-    cv_texto: str, oferta_texto: str, palabras_clave_ats: list = None
+    cv_texto: str,
+    oferta_texto: str,
+    palabras_clave_ats: list = None,
+    inclusiones_confirmadas: list = None,
 ) -> str:
     """
     Reescribe el CV del usuario destacando lo más relevante para la oferta,
@@ -20,13 +23,27 @@ def generar_cv_adaptado(
             f"candidato no tiene experiencia real relacionada."
         )
 
+    instruccion_inclusiones = ""
+    if inclusiones_confirmadas:
+        lista_inclusiones = "\n".join(f"- {texto}" for texto in inclusiones_confirmadas)
+        instruccion_inclusiones = (
+            f"\n\nEl candidato ha CONFIRMADO explicitamente que las siguientes "
+            f"experiencias son reales y autoriza incluirlas en el CV. Integralas "
+            f"de forma natural en la seccion de experiencia correspondiente, "
+            f"manteniendo el mismo estilo y formato que el resto del documento:\n"
+            f"{lista_inclusiones}"
+        )
+
     prompt = f"""
 Eres un experto en redacción de CVs y en optimización para sistemas ATS
-(Applicant Tracking System). Reescribe el siguiente CV para que destaque
-lo más relevante de cara a la oferta de trabajo indicada.
+(Applicant Tracking System), especializado en el mercado laboral de España.
+Reescribe el siguiente CV para que destaque lo más relevante de cara a la
+oferta de trabajo indicada.
 
 REGLAS IMPORTANTES:
-- NO inventes experiencia, títulos ni habilidades que no estén en el CV original.
+- NO inventes experiencia, títulos ni habilidades que no estén en el CV original,
+  salvo las inclusiones explicitamente confirmadas por el candidato (ver mas abajo,
+  si las hay).
 - REGLA ABSOLUTA E INNEGOCIABLE: el resultado DEBE caber en una sola pagina A4.
   Maximo 380 palabras en total, sin excepcion. Esto es mas importante que incluir
   todo el detalle posible: prioriza SOLO la experiencia y logros mas relevantes para
@@ -34,26 +51,54 @@ REGLAS IMPORTANTES:
   antigua, poco relevante, o secciones secundarias si es necesario para cumplir
   este limite. Es preferible un CV corto y enfocado a uno completo que ocupe dos
   paginas.
+- IDIOMA: detecta el idioma predominante de la OFERTA DE TRABAJO. El CV final
+  debe estar COMPLETAMENTE en ese idioma, sin mezclar idiomas en ningun punto
+  (ni siquiera en titulos de seccion o habilidades sueltas). Si la oferta esta
+  mayoritariamente en ingles, el CV completo debe generarse en ingles. Si la
+  oferta esta en español o el idioma no es claro, usa español. Nunca generes
+  un CV con frases en dos idiomas distintos.
+- ORDEN CRONOLOGICO: ordena TODA la experiencia (empleos, proyectos relevantes,
+  formacion) de mas reciente a mas antigua, de forma estrictamente cronologica,
+  usando fechas reales del CV original.
+- FECHAS OBLIGATORIAS EN PROYECTOS: si incluyes una seccion de "Proyectos" o
+  "Trabajo independiente", CADA proyecto debe llevar su fecha o rango de fechas
+  visible, igual que cualquier empleo formal, usando el mismo formato de fecha
+  consistente. Si el CV original no especifica fecha para un proyecto, usa el
+  año que si este disponible aunque sea aproximado (ej: "2022"), pero nunca
+  omitas la fecha por completo.
+- POSICION DE PROYECTOS: la seccion de Proyectos debe integrarse en el orden
+  cronologico real segun su fecha, junto con los empleos formales (no
+  agrupada aparte al principio o al final salvo que cronologicamente le
+  corresponda esa posicion). Si varios proyectos y empleos se solapan en fechas,
+  ordena por fecha de inicio, mas reciente primero.
+- METRICAS Y CUANTIFICACION: prioriza logros cuantificados (numeros, porcentajes,
+  resultados medibles) sobre descripciones genericas. Si el CV original ya tiene
+  datos numericos, destacalos. Si una experiencia relevante NO tiene ninguna
+  metrica en el CV original pero el logro es cuantificable por naturaleza (ej:
+  mejora de procesos, reduccion de tiempos, gestion de volumen), añade al final
+  de esa linea la marca "[cuantificar impacto]" para que el candidato la rellene
+  el mismo. NUNCA inventes una cifra especifica que no este en el CV original.
 - Optimización ATS: incluye de forma natural las palabras clave y términos exactos
   que aparecen en la oferta de trabajo (títulos de puesto, tecnologías, habilidades),
   siempre que sean ciertos según el CV original.
-- Usa títulos de sección estándar en mayúsculas: PERFIL PROFESIONAL, EXPERIENCIA,
-  HABILIDADES, FORMACIÓN, IDIOMAS.
+- Usa títulos de sección estándar en mayúsculas, en el idioma detectado (ej:
+  PERFIL PROFESIONAL / PROFESSIONAL SUMMARY, EXPERIENCIA / EXPERIENCE,
+  HABILIDADES / SKILLS, FORMACIÓN / EDUCATION, IDIOMAS / LANGUAGES).
 - Para las listas, usa el guion simple "-" al inicio de cada línea, nunca el símbolo "*".
 - No uses guiones largos (–) ni comillas especiales; usa solo guion simple "-" y comillas rectas.
 - Estructura clara y directa, sin relleno ni frases genéricas vacías.
 - Devuelve SOLO el texto del CV final, sin explicaciones ni comentarios adicionales.
 - Adapta la terminología de los títulos de puesto y logros para reflejar el lenguaje
   exacto de la oferta (sinónimos incluidos), sin inventar ni tergiversar lo que hiciste realmente.{instruccion_palabras_clave}
-- Prioriza logros cuantificados (números, porcentajes, resultados medibles) sobre
-  descripciones genéricas de responsabilidades. Si el CV original tiene datos numéricos,
-  destácalos; no inventes cifras que no estén en el CV original.
 - Empieza cada punto de experiencia con un verbo de acción fuerte (ej: "Lideré",
-  "Optimicé", "Gestioné", "Reduje"), evitando frases pasivas.
+  "Optimicé", "Gestioné", "Reduje" o sus equivalentes en el idioma detectado),
+  evitando frases pasivas.
 - Incluye variantes y sinónimos reales de las palabras clave de la oferta cuando
   correspondan a experiencia genuina del candidato (ej: si el CV menciona "CRM" y la
   oferta dice "gestión de relaciones con clientes", usa ambos términos si es natural).
-- Usa fechas en formato consistente en todo el documento (ej: "Enero 2024 - Enero 2025").
+- Usa fechas en formato consistente en todo el documento, con guion simple entre
+  fechas (ej: "Enero 2024 - Enero 2025", nunca "Enero 2024 Enero 2025" sin separador).
+{instruccion_inclusiones}
 
 CV ORIGINAL:
 {cv_texto}
@@ -129,6 +174,11 @@ def crear_pdf_desde_texto(
         "FORMACIÓN COMPLEMENTARIA",
         "IDIOMAS",
         "LIDERAZGO Y VOLUNTARIADO",
+        "PROFESSIONAL SUMMARY",
+        "EXPERIENCE",
+        "SKILLS",
+        "EDUCATION",
+        "LANGUAGES",
     }
 
     for linea in texto_cv.split("\n"):
@@ -155,7 +205,7 @@ def crear_pdf_desde_texto(
         else:
             pdf.multi_cell(ancho_util, 5, linea_segura)
 
-    if pdf.page_no() > 1 and tamano_fuente > 7.5:
+    if pdf.page_no() > 1 and tamano_fuente > 9:
         return crear_pdf_desde_texto(texto_cv, ruta_salida, tamano_fuente - 0.5)
 
     pdf.output(ruta_salida)
