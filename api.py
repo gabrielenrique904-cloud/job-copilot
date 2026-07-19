@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from pydantic import BaseModel
 from core.analizador_cv import analizar_match
@@ -13,14 +14,19 @@ from core.lector_cv import extraer_texto_cv
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from database.modelos import Usuario, SessionLocal
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="AI Job Copilot API")
 
 from fastapi.middleware.cors import CORSMiddleware
 
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

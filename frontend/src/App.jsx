@@ -2,6 +2,7 @@ import { useState } from "react";
 import AuthForm from "./components/AuthForm";
 import ResetPassword from "./components/ResetPassword";
 import Dashboard from "./components/Dashboard";
+import CookieBanner from "./components/CookieBanner";
 
 function App() {
   const [usuarioId, setUsuarioId] = useState(() => {
@@ -23,21 +24,30 @@ function App() {
     setUsuarioId(null);
   }
 
-  if (tokenReset) {
-    return <ResetPassword token={tokenReset} />;
-  }
+  function renderizarPantalla() {
+    if (tokenReset) {
+      return <ResetPassword token={tokenReset} />;
+    }
 
-  if (!usuarioId) {
-    return <AuthForm onLoginExitoso={manejarLoginExitoso} />;
+    if (!usuarioId) {
+      return <AuthForm onLoginExitoso={manejarLoginExitoso} />;
+    }
+
+    return (
+      <Dashboard
+        onCerrarSesion={manejarCerrarSesion}
+        modalAbierto={modalAbierto}
+        onAbrirModal={setModalAbierto}
+        onCerrarModal={() => setModalAbierto(null)}
+      />
+    );
   }
 
   return (
-    <Dashboard
-      onCerrarSesion={manejarCerrarSesion}
-      modalAbierto={modalAbierto}
-      onAbrirModal={setModalAbierto}
-      onCerrarModal={() => setModalAbierto(null)}
-    />
+    <>
+      {renderizarPantalla()}
+      <CookieBanner />
+    </>
   );
 }
 

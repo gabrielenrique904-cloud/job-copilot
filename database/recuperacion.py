@@ -11,6 +11,7 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 
 MINUTOS_EXPIRACION = 30
 LIMITE_SOLICITUDES_DIARIAS = 3
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 
 def solicitar_recuperacion(email: str) -> dict:
@@ -58,7 +59,7 @@ def solicitar_recuperacion(email: str) -> dict:
         sesion.add(nuevo_token)
         sesion.commit()
 
-        enlace = f"http://localhost:5173/reset-password?token={token}"
+        enlace = f"{FRONTEND_URL}/reset-password?token={token}"
 
         try:
             resend.Emails.send({
