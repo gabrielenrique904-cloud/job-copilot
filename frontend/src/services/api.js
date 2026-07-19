@@ -133,3 +133,12 @@ export async function resetearPassword(token, nuevaPassword) {
   });
   return respuesta.json();
 }
+
+export async function enviarContacto(email, mensaje) {
+  const respuesta = await fetch(`${API_URL}/contacto`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, mensaje }),
+  });
+  return respuesta.json();
+}

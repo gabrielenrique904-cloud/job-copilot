@@ -6,6 +6,7 @@ from core.buscador_ofertas import buscar_y_analizar_ofertas
 from database.autenticacion import registrar_usuario, verificar_login
 from database.recuperacion import solicitar_recuperacion, resetear_password
 from database.limites import verificar_y_registrar_uso
+from database.contacto import enviar_mensaje_contacto
 from fastapi.responses import FileResponse
 from fastapi import UploadFile, File
 from core.lector_cv import extraer_texto_cv
@@ -70,6 +71,11 @@ class OlvidePasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     nueva_password: str
+
+
+class ContactoRequest(BaseModel):
+    email: str
+    mensaje: str
 
 
 @app.get("/")
@@ -153,6 +159,11 @@ def olvide_password(datos: OlvidePasswordRequest):
 @app.post("/reset-password")
 def reset_password(datos: ResetPasswordRequest):
     return resetear_password(datos.token, datos.nueva_password)
+
+
+@app.post("/contacto")
+def contacto(datos: ContactoRequest):
+    return enviar_mensaje_contacto(datos.email, datos.mensaje)
 
 
 GOOGLE_CLIENT_ID = "279674431785-mi0s5fm4ahco1n9a7lms03bnh766eaf1.apps.googleusercontent.com"
