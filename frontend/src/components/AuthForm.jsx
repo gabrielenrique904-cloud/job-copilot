@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import { registrarUsuario, iniciarSesion, iniciarSesionGoogle, solicitarRecuperacion } from "../services/api";
+import { Eye, EyeOff } from "lucide-react";
 
 function AuthForm({ onLoginExitoso }) {
   const [modo, setModo] = useState("login"); // "login" | "registro" | "olvide"
@@ -119,7 +120,7 @@ function AuthForm({ onLoginExitoso }) {
                 onClick={() => setMostrarPassword(!mostrarPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm"
               >
-                {mostrarPassword ? "🙈" : "👁️"}
+                {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           )}
