@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { registrarUsuario, iniciarSesion, iniciarSesionGoogle, solicitarRecuperacion } from "../services/api";
 import { Eye, EyeOff } from "lucide-react";
+import { registrarUsuario, iniciarSesion, iniciarSesionGoogle, solicitarRecuperacion } from "../services/api";
 
 function AuthForm({ onLoginExitoso }) {
   const [modo, setModo] = useState("login"); // "login" | "registro" | "olvide"
@@ -70,8 +70,8 @@ function AuthForm({ onLoginExitoso }) {
       : "Iniciar sesión";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md w-full max-w-sm">
         <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
           AI Job Copilot
         </h1>
@@ -118,7 +118,7 @@ function AuthForm({ onLoginExitoso }) {
               <button
                 type="button"
                 onClick={() => setMostrarPassword(!mostrarPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 text-sm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

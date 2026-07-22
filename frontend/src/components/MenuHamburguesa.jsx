@@ -1,7 +1,9 @@
 import { useState } from "react";
+import ModalInfo from "./modals/ModalInfo";
 
-function MenuHamburguesa({ onCerrarSesion, onAbrirModal }) {
+function MenuHamburguesa({ onCerrarSesion, onAbrirContacto }) {
   const [abierto, setAbierto] = useState(false);
+  const [aboutAbierto, setAboutAbierto] = useState(false);
 
   return (
     <div className="relative">
@@ -24,16 +26,7 @@ function MenuHamburguesa({ onCerrarSesion, onAbrirModal }) {
           <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-2">
             <button
               onClick={() => {
-                onAbrirModal("guia");
-                setAbierto(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Cómo funciona
-            </button>
-            <button
-              onClick={() => {
-                onAbrirModal("about");
+                setAboutAbierto(true);
                 setAbierto(false);
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -42,16 +35,7 @@ function MenuHamburguesa({ onCerrarSesion, onAbrirModal }) {
             </button>
             <button
               onClick={() => {
-                onAbrirModal("privacidad");
-                setAbierto(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Política de privacidad
-            </button>
-            <button
-              onClick={() => {
-                onAbrirModal("contacto");
+                onAbrirContacto();
                 setAbierto(false);
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -71,6 +55,8 @@ function MenuHamburguesa({ onCerrarSesion, onAbrirModal }) {
           </div>
         </>
       )}
+
+      <ModalInfo tipo={aboutAbierto ? "about" : null} onCerrar={() => setAboutAbierto(false)} />
     </div>
   );
 }

@@ -1,186 +1,16 @@
 import { useState } from "react";
-import { buscarOfertas, generarCV, extraerTextoCV, sugerirInclusion } from "../services/api";
+import { buscarOfertas, extraerTextoCV } from "../services/api";
 import { iniciarContadorEspera } from "../utils/contador";
+import { Paperclip, Search } from "lucide-react";
+import TarjetaOferta from "./TarjetaOferta";
 
 const PROVINCIAS_ESPANA = [
   "Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza", "Málaga", "Murcia", "Palma de Mallorca", "Las Palmas", "Bilbao",
   "Alicante", "Córdoba", "Valladolid", "Vigo", "Gijón", "A Coruña", "Granada", "Elche", "Oviedo", "Badalona",
   "Cartagena", "Terrassa", "Jerez de la Frontera", "Sabadell", "Móstoles", "Alcalá de Henares", "Pamplona", "Fuenlabrada", "Almería", "Leganés",
   "San Sebastián", "Santander", "Burgos", "Castellón de la Plana", "Albacete", "Getafe", "Alcorcón", "Logroño", "Badajoz", "Salamanca",
-  "Huelva", "Marbella", "Lleida", "Tarragona", "León", "Cádiz", "Jaén", "Ourense", "Girona", "Toda España"
+  "Huelva", "Marbella", "Lleida", "Tarragona", "León", "Cádiz", "Jaén", "Ourense", "Girona", "Toda España",
 ];
-
-function PalabraClaveChip({ palabra, cumplida, cvTexto, usuarioId, onConfirmarInclusion }) {
-  const [mostrarSugerencia, setMostrarSugerencia] = useState(false);
-  const [sugerencia, setSugerencia] = useState("");
-  const [cargandoSugerencia, setCargandoSugerencia] = useState(false);
-  const [avisoSugerencia, setAvisoSugerencia] = useState("");
-  const [confirmado, setConfirmado] = useState(false);
-
-  async function manejarSugerir() {
-    setMostrarSugerencia(true);
-    setCargandoSugerencia(true);
-    setAvisoSugerencia("");
-    try {
-      const datos = await sugerirInclusion(usuarioId, cvTexto, palabra);
-      setSugerencia(datos.sugerencia);
-    } catch (error) {
-      if (error.segundosRestantes) {
-        iniciarContadorEspera(setAvisoSugerencia, error.segundosRestantes);
-      } else {
-        setAvisoSugerencia(error.message || "No pudimos generar la sugerencia. Inténtalo de nuevo.");
-      }
-    } finally {
-      setCargandoSugerencia(false);
-    }
-  }
-
-  function manejarConfirmar(evento) {
-    const marcado = evento.target.checked;
-    setConfirmado(marcado);
-    onConfirmarInclusion(palabra, marcado ? sugerencia : null);
-  }
-
-  const esSugerenciaValida = sugerencia && !sugerencia.toLowerCase().startsWith("no encontramos experiencia");
-
-  if (cumplida) {
-    return <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">{palabra}</span>;
-  }
-
-  return (
-    <div className="inline-flex flex-col">
-      <div className="inline-flex items-center gap-1">
-        <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-500 line-through">{palabra}</span>
-        <button onClick={manejarSugerir} className="text-xs text-blue-600 hover:underline whitespace-nowrap">
-          Sugerir inclusión
-        </button>
-      </div>
-
-      {mostrarSugerencia && (
-        <div className="mt-1 mb-2 p-2 bg-blue-50 rounded-lg text-xs text-blue-900 max-w-xs">
-          <p>{cargandoSugerencia ? "Pensando una sugerencia..." : avisoSugerencia || sugerencia}</p>
-
-          {!cargandoSugerencia && sugerencia && !avisoSugerencia && (
-            <>
-              <button onClick={() => navigator.clipboard.writeText(sugerencia)} className="mt-1 mr-3 text-blue-600 hover:underline font-medium">
-                Copiar sugerencia
-              </button>
-
-              {esSugerenciaValida && (
-                <label className="flex items-start gap-2 mt-2 cursor-pointer">
-                  <input type="checkbox" checked={confirmado} onChange={manejarConfirmar} className="mt-0.5" />
-                  <span className="text-blue-900">
-                    Confirmo que esta experiencia es real y verídica, y asumo toda la responsabilidad de incluirla en mi CV.
-                  </span>
-                </label>
-              )}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TarjetaOferta({ oferta, cvTexto, usuarioId }) {
-  const [generandoCV, setGenerandoCV] = useState(false);
-  const [aviso, setAviso] = useState("");
-  const [mostrarDetalle, setMostrarDetalle] = useState(false);
-  const [inclusionesConfirmadas, setInclusionesConfirmadas] = useState({});
-  const [instruccionesAdicionales, setInstruccionesAdicionales] = useState("");
-
-  function manejarConfirmarInclusion(palabra, texto) {
-    setInclusionesConfirmadas((anterior) => ({ ...anterior, [palabra]: texto }));
-  }
-
-  async function manejarGenerarCV() {
-    setGenerandoCV(true);
-    setAviso("");
-    try {
-      const listaInclusiones = Object.values(inclusionesConfirmadas).filter(Boolean);
-      const blob = await generarCV(usuarioId, cvTexto, oferta.descripcion, oferta.palabras_clave_ats, listaInclusiones.length > 0 ? listaInclusiones : null, instruccionesAdicionales.trim() || null);
-      const url = window.URL.createObjectURL(blob);
-      const enlace = document.createElement("a");
-      enlace.href = url;
-      enlace.download = `cv_adaptado_${oferta.empresa}.pdf`;
-      enlace.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      if (error.segundosRestantes) {
-        iniciarContadorEspera(setAviso, error.segundosRestantes);
-      } else {
-        setAviso(error.message || "No pudimos generar el CV. Inténtalo de nuevo.");
-      }
-    } finally {
-      setGenerandoCV(false);
-    }
-  }
-
-  return (
-    <div className="border border-gray-200 rounded-lg p-4 mb-4">
-      <h3 className="text-lg font-bold text-gray-800">{oferta.match}% match — {oferta.titulo}</h3>
-      <p className="text-gray-600 mb-2"><span className="font-medium">{oferta.empresa}</span> | {oferta.ubicacion}</p>
-
-      <button onClick={() => setMostrarDetalle(!mostrarDetalle)} className="text-blue-600 text-sm hover:underline mb-2">
-        {mostrarDetalle ? "Ocultar detalle" : "Ver fortalezas y carencias"}
-      </button>
-
-      {mostrarDetalle && (
-        <div className="mb-3 text-sm">
-          <p className="font-medium text-gray-700 mt-2">Fortalezas:</p>
-          <ul className="space-y-1">
-            {oferta.fortalezas.map((punto, i) => <li key={i} className="text-gray-700">✅ {punto}</li>)}
-          </ul>
-          <p className="font-medium text-gray-700 mt-2">Carencias:</p>
-          <ul className="space-y-1">
-            {oferta.carencias.map((punto, i) => <li key={i} className="text-gray-700">⚠️ {punto}</li>)}
-          </ul>
-          <p className="font-medium text-gray-700 mt-2">
-            Compatibilidad ATS: {oferta.palabras_clave_cumplidas.length} de {oferta.palabras_clave_ats.length} palabras clave
-          </p>
-          <div className="flex flex-wrap gap-2 mt-1 items-start">
-            {oferta.palabras_clave_ats.map((palabra, i) => {
-              const cumplida = oferta.palabras_clave_cumplidas.includes(palabra);
-              return <PalabraClaveChip key={i} palabra={palabra} cumplida={cumplida} cvTexto={cvTexto} usuarioId={usuarioId} onConfirmarInclusion={manejarConfirmarInclusion} />;
-            })}
-          </div>
-
-          {oferta.red_flags && oferta.red_flags.length > 0 && (
-            <>
-              <p className="font-medium text-gray-700 mt-3">⚠️ Señales de alerta:</p>
-              <div className="space-y-1 mt-1">
-                {oferta.red_flags.map((flag, i) => (
-                  <div key={i} className={`p-2 rounded text-xs border-l-4 ${flag.gravedad === "alta" ? "bg-red-50 border-red-500 text-red-800" : flag.gravedad === "media" ? "bg-amber-50 border-amber-500 text-amber-800" : "bg-gray-50 border-gray-400 text-gray-700"}`}>
-                    {flag.senal}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="mt-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Instrucciones adicionales para este CV (opcional)</label>
-            <textarea value={instruccionesAdicionales} onChange={(e) => setInstruccionesAdicionales(e.target.value)} placeholder='Ej: "quita mi dirección antigua" o "Node.js es una librería, muévela a Habilidades técnicas"' rows={2} className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <p className="text-xs text-gray-500 mt-1">
-              Puedes pedir reorganizar, recategorizar o eliminar información existente. Nunca se añadirá experiencia que no esté ya en tu CV.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {aviso && <p className="text-red-600 text-sm mb-2">{aviso}</p>}
-
-      <div className="flex gap-3">
-        <a href={oferta.url} target="_blank" rel="noopener noreferrer" className="border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">
-          Ver oferta original
-        </a>
-        <button onClick={manejarGenerarCV} disabled={generandoCV} className="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-700 disabled:opacity-50">
-          {generandoCV ? "Generando..." : "📄 Generar CV adaptado"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function BuscadorOfertas() {
   const [cvTexto, setCvTexto] = useState("");
@@ -240,43 +70,95 @@ function BuscadorOfertas() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 mt-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-2">🔍 Buscar mi trabajo ideal</h2>
-      <p className="text-gray-600 mb-4">Pega tu CV y te buscamos ofertas reales publicadas en las últimas 24h, ordenadas por compatibilidad.</p>
+    <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <Search size={20} className="text-blue-600" />
+        Buscar mi trabajo ideal
+      </h2>
+      <p className="text-gray-600 mb-4">
+        Pega tu CV y te buscamos ofertas reales publicadas en las últimas 24h,
+        ordenadas por compatibilidad.
+      </p>
 
       <div className="mb-3">
-        <label className="block text-sm font-medium text-gray-700 mb-2">O sube tu CV (PDF o Word)</label>
-        <label htmlFor="input-cv-busqueda" className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 ${subiendoArchivo ? "opacity-50 pointer-events-none" : ""}`}>
-          📎 Seleccionar archivo
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          O sube tu CV (PDF o Word)
         </label>
-        <input id="input-cv-busqueda" type="file" accept=".pdf,.docx" onChange={manejarSubirArchivo} disabled={subiendoArchivo} className="hidden" />
+        <label
+          htmlFor="input-cv-busqueda"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 ${
+            subiendoArchivo ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          <Paperclip size={16} />
+          Seleccionar archivo
+        </label>
+        <input
+          id="input-cv-busqueda"
+          type="file"
+          accept=".pdf,.docx"
+          onChange={manejarSubirArchivo}
+          disabled={subiendoArchivo}
+          className="hidden"
+        />
         {subiendoArchivo && <p className="text-blue-600 text-sm mt-2">Leyendo archivo...</p>}
       </div>
 
-      <textarea value={cvTexto} onChange={(e) => setCvTexto(e.target.value)} placeholder="Tu CV (para la búsqueda automática)" rows={16} className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1" />
+      <textarea
+        value={cvTexto}
+        onChange={(e) => setCvTexto(e.target.value)}
+        placeholder="Pega aquí el texto completo de tu CV (usaremos tus palabras clave para buscar ofertas afines)"
+        className="w-full h-40 sm:h-56 md:h-72 resize-y border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1"
+      />
       <p className="text-xs text-gray-500 mb-4">Máximo 6.000 caracteres.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <input type="text" value={palabrasClave} onChange={(e) => setPalabrasClave(e.target.value)} placeholder="Palabras clave" className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <select value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          {PROVINCIAS_ESPANA.map((provincia) => <option key={provincia} value={provincia}>{provincia}</option>)}
+        <input
+          type="text"
+          value={palabrasClave}
+          onChange={(e) => setPalabrasClave(e.target.value)}
+          placeholder="Palabras clave"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          value={ubicacion}
+          onChange={(e) => setUbicacion(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {PROVINCIAS_ESPANA.map((provincia) => (
+            <option key={provincia} value={provincia}>
+              {provincia}
+            </option>
+          ))}
         </select>
       </div>
 
       {aviso && <p className="text-amber-600 mb-3">{aviso}</p>}
 
-      <button onClick={manejarBuscar} disabled={cargando} className="bg-blue-600 text-white rounded-lg px-6 py-2 font-medium hover:bg-blue-700 disabled:opacity-50">
+      <button
+        onClick={manejarBuscar}
+        disabled={cargando}
+        className="w-full sm:w-auto bg-blue-600 text-white rounded-lg px-6 py-2.5 font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+      >
         {cargando ? "Buscando y analizando..." : "Buscar ofertas idóneas"}
       </button>
 
       {ofertas !== null && (
         <div className="mt-6 border-t pt-6">
           {ofertas.length === 0 ? (
-            <p className="text-gray-600">No se encontraron ofertas para esos criterios en las últimas 24h. Prueba otras palabras clave.</p>
+            <p className="text-gray-600">
+              No se encontraron ofertas para esos criterios en las últimas 24h.
+              Prueba otras palabras clave.
+            </p>
           ) : (
             <>
-              <p className="text-green-700 font-medium mb-4">Se encontraron {ofertas.length} ofertas, ordenadas de mayor a menor compatibilidad:</p>
-              {ofertas.map((oferta, i) => <TarjetaOferta key={i} oferta={oferta} cvTexto={cvTexto} usuarioId={usuarioId} />)}
+              <p className="text-green-700 font-medium mb-4">
+                Se encontraron {ofertas.length} ofertas, ordenadas de mayor a
+                menor compatibilidad:
+              </p>
+              {ofertas.map((oferta, i) => (
+                <TarjetaOferta key={i} oferta={oferta} cvTexto={cvTexto} usuarioId={usuarioId} />
+              ))}
             </>
           )}
         </div>
